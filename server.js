@@ -4,13 +4,24 @@ const app = express();
 const morgan = require("morgan");
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const authRoute = require('./routes/auth');
+const calendarRoute = require('./routes/calendar');
+const homeRoute = require('./routes/home');
+const memberRoute = require('./routes/member')
+const promiseRoute = require('./routes/promise');
 
-const port = 3000;
+const port = 8000;
 
 app.use(morgan("dev"));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended : false}));
 app.use(cors());
+
+app.use('/auth', authRoute);
+app.use('/calendar', calendarRoute);
+app.use('/home', homeRoute);
+app.use('/member', memberRoute);
+app.use('/promise', promiseRoute);
 
 const { createServer } = require("http");
 const httpServer = createServer(app);
