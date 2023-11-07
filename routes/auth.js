@@ -99,14 +99,20 @@ router.post('/signToken', async(req, res) => {
 router.post('/token', refresh);
 
 router.get('/test', (req, res) => {
-    const header = req.headers.authorization
-    console.log(header)
-    if (!header) {
-        res.status(200).send({message: "hello anyone"});
+    if (req.headers.authorization) {
+        const header = req.headers.authorization
+        if (!header) {
+            res.status(200).send({message: "hello anyone"});
+        } else {
+            const accessToken = header.split('Bearer ')[1];
+            res.status(200).send({message: `hello ${accessToken}`})
+        }
     } else {
-        const accessToken = header.split('Bearer ')[1];
-        res.status(200).send({message: `hello ${accessToken}`})
+        res.status(400).send({message: "no header"})
     }
+    
+
+    
 
 });
 
