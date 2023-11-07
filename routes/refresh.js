@@ -1,9 +1,9 @@
 // refresh.js
-const { sign, verify, refreshVerify } = require('../utils/jwt-util');
+const { access, verify, refreshVerify } = require('../utils/jwt-util');
 const jwt = require('jsonwebtoken');
 
 const refresh = async (req, res) => {
-  // access token과 refresh token의 존재 유무를 체크합니다.
+    // access token과 refresh token의 존재 유무를 체크합니다.
     if (req.headers.authorization && req.headers.refresh) {
         const authToken = req.headers.authorization.split('Bearer ')[1];
         const refreshToken = req.headers.refresh;
@@ -52,14 +52,14 @@ const refresh = async (req, res) => {
             res.status(400).send({
                 statusCode: 1075, 
                 data: {},
-                message: 'Acess token is not expired!',
+                message: "access token is not expired"
             });
         }
     } else { // access token 또는 refresh token이 헤더에 없는 경우
         res.status(404).send({
             statusCode: 1080, 
             data: {},
-            message: 'No refresh token or access token in header',
+            message: "no refresh token or access token in header"
         });
     }
 };

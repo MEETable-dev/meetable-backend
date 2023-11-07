@@ -89,15 +89,26 @@ router.post('/login', async(req, res) => {
 router.post('/signToken', async(req, res) => {
     const signToken = jwt.sign(req.body.name, req.body.email, req.body.pwd);
     res.status(200).send({ 
-        statusCode: 1030, 
         data: { 
             signToken: signToken
-        },
-        message: "need to signup" });
+        }
+    });
 });
 
 // access token 재발급
-router.get('/token', refresh);
+router.post('/token', refresh);
+
+router.get('/test', (req, res) => {
+    const header = req.headers.authorization
+    console.log(header)
+    if (!header) {
+        res.status(200).send({message: "hello anyone"});
+    } else {
+        const accessToken = header.split('Bearer ')[1];
+        res.status(200).send({message: `hello ${accessToken}`})
+    }
+
+});
 
 
 module.exports = router;

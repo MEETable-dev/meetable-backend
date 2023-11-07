@@ -9,6 +9,9 @@ const calendarRoute = require('./routes/calendar');
 const homeRoute = require('./routes/home');
 const memberRoute = require('./routes/member')
 const promiseRoute = require('./routes/promise');
+const swaggerUi = require('swagger-ui-express');
+const swaggerFile = require('./swagger-output.json');
+
 
 const port = 8000;
 
@@ -22,7 +25,7 @@ app.use('/calendar', calendarRoute);
 app.use('/home', homeRoute);
 app.use('/member', memberRoute);
 app.use('/promise', promiseRoute);
-
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerFile, { explorer: true }));
 const { createServer } = require("http");
 const httpServer = createServer(app);
 
