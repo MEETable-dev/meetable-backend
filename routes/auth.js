@@ -105,8 +105,14 @@ router.get('/test', (req, res) => {
         if (req.headers.authorization === undefined) {
             res.status(200).send({message: "hello anyone"});
         } else {
-            const accessToken = (req.headers.authorization).split('Bearer ')[1];
-            res.status(200).send({message: `hello ${accessToken}`})
+            if (req.headers.authorization.includes('@')) {
+                const temp = req.headers.authorization;
+                res.status(401).send({statusCode:1090, message: `include @@: ${temp}`});
+            } else {
+                const accessToken = (req.headers.authorization).split('Bearer ')[1];
+                res.status(200).send({message: `hello ${accessToken}`})
+            }
+
         }
        
     }
