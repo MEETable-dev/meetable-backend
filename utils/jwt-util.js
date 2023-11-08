@@ -21,6 +21,7 @@ module.exports = {
       decoded = jwt.verify(token, secret);
       return {
         ok: true,
+        email: decoded
       };
     } catch (err) {
       return {
@@ -56,10 +57,39 @@ module.exports = {
       return false;
     }
   },
-  sign: (name, email, pwd) => {
+  logout: async (email) => {
+    console.log(email)
+    const existAsync = promisify(redisClient.exists).bind(redisClient);
+    const delAsync = promisify(redisClient.del).bind(redisClient);
+    try {
+      const exists = await existAsync(email);
+      if(exists) await delAsync(email);
+      else return false;
+    } catch (err) {
+      return false;
+    }
+  },
+  email: (email) => {
+    const payload = { // access token에 들어갈 payload
+      email: email,
+    };
+
+    return jwt.sign(payload, secret, { // secret으로 sign하여 발급하고 return
+      algorithm: 'HS256', // 암호화 알고리즘
+      expiresIn: '10m', 	  // 유효기간
+    });
+  },
+  emailVerify: (token) => {
+    try {
+      return jwt.verify(token, secret);
+    } catch(err) {
+      return false;
+    }
+  },
+  sign: (name, emailToken, pwd) => {
     const payload = { // access token에 들어갈 payload
       name: name,
-      email: email,
+      email: emailToken,
       pwd: pwd,
     };
 

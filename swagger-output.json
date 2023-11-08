@@ -16,7 +16,7 @@
     "http"
   ],
   "securityDefinitions": {
-    "BearerAuth": {
+    "bearerAuth": {
       "type": "apiKey",
       "scheme": "bearer",
       "in": "header",
@@ -35,9 +35,9 @@
               "type": "object",
               "properties": {
                 "signToken": {
-                  "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoic2V1bmdobyIsImVtYWlsIjoiZ29taTA5MDRAeW9uc2VpLmFjLmtyIiwicHdkIjoxMjM0LCJpYXQiOjE2OTkzNDM4MjcsImV4cCI6MTY5OTM0NDQyN30.mp_A0rs8IF4utSmzbdjW2yq_l9-NKEWz_5eSjxAxd1k"
-                }, "marketingPolicy" : {
-                  "example": "T"
+                  "example": "string"
+                }, "marketingPolicy": {
+                  "example": "T or F"
                 }
               }
             }
@@ -64,10 +64,10 @@
               "type": "object",
               "properties": {
                 "pwd": {
-                  "example": "1234"
+                  "example": "strung"
                 },
                 "email": {
-                  "example": "gomi0904@yonsei.ac.kr"
+                  "example": "string"
                 }
               }
             }
@@ -97,13 +97,13 @@
               "type": "object",
               "properties": {
                 "name": {
-                  "example": "seungho"
+                  "example": "strung"
                 },
-                "email": {
-                  "example": "gomi0904@yonsei.ac.kr"
+                "emailToken": {
+                  "example": "string"
                 },
                 "pwd": {
-                  "example": "1234"
+                  "example": "string"
                 }
               }
             }
@@ -121,22 +121,24 @@
         "description": "",
         "parameters": [
           {
-            "name": "authorization",
-            "in": "header",
-            "type": "string"
-          },
-          {
-            "name": "refresh",
-            "in": "header",
-            "type": "string"
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "accessToken": {
+                  "example": "string"
+                },
+                "refreshToken": {
+                  "example": "string"
+                }
+              }
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "OK"
-          },
-          "400": {
-            "description": "Bad Request"
           },
           "401": {
             "description": "Unauthorized"
@@ -150,11 +152,6 @@
     "/auth/test": {
       "get": {
         "description": "",
-        "security": [
-          {
-          "BearerAuth": []
-          }
-        ],
         "parameters": [
           {
             "name": "authorization",
@@ -165,8 +162,104 @@
         "responses": {
           "200": {
             "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }, 
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/auth/sendVerifyCode": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "example": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": "Internal Server Error"
           }
         }
+      }
+    },
+    "/auth/confirmVerifyCode": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "example": "string"
+                },
+                "verifyCode": {
+                  "example": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     }
   }
