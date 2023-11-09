@@ -226,7 +226,7 @@ router.post('/logout', authJWT, async (req, res, next) => {
 
 // 이메일 찾기
 router.get('/findEmail', async(req, res) => {
-    const [member] = await da.promise().query(`
+    const [member] = await db.promise().query(`
         SELECT member_id FROM member WHERE member_name = '${req.query.name}' AND member_id = '${req.query.email}'
     `)
     if (member.length == 0) {
