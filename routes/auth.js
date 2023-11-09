@@ -15,6 +15,7 @@ var appDir = path.dirname(require.main.filename);
 
 // 회원가입
 router.post('/signup', async(req, res) => {
+    //redis 연결 for refresh token 저장
     redisClient.connect().then();
     //signToken 해체
     const signInfoVerified = jwt.signVerify(req.body.signToken);
@@ -25,14 +26,16 @@ router.post('/signup', async(req, res) => {
             message: "invalid sign token" 
         })
     }
-    const emailVerified = jwt.emailVerify(signInfoVerified.email); // 이메일 토큰이 만료된 경우
+    // 이메일 토큰이 만료된 경우
+    const emailVerified = jwt.emailVerify(signInfoVerified.email); 
     if (emailVerified === false) {
         return res.status(400).json({
-            statusCode: 1120, 
+            statusCode: 1120,
             data: {},
             message: "invalid email token, email token expired" 
         })
     }
+    // 비밀번호 저장 때문에 bcrypt 사용
     bcrypt.genSalt(saltRounds, (err, salt) => {
         bcrypt.hash(signInfoVerified.pwd, salt, (err, encrypted) => {
             db.promise().query(`
@@ -71,7 +74,7 @@ router.post('/login', async(req, res) => {
         SELECT * FROM member WHERE member_email = '${req.body.email}'
     `)
     if (member.length == 0) {
-        res.status(404).send({
+        return res.status(404).jsons({
             statusCode: 404, 
             data: {},
             message: "member not found" 
@@ -113,6 +116,7 @@ router.post('/signToken', async(req, res) => {
 // access token 재발급
 router.post('/token', refresh);
 
+// header에 따라 검증하기 위한 test api -> 회원/비회원 구분할 때 이용 예정, 발전시켜야함
 router.get('/test', (req, res) => {
     if (req.headers===undefined) {
         res.status(200).send({message: "no header"});
@@ -132,6 +136,7 @@ router.get('/test', (req, res) => {
        
     }
 });
+
 // 이메일 인증번호 발송
 router.post('/sendVerifyCode', async(req, res) => {
     let randomNumber = Math.floor(Math.random() * 1000000);
@@ -162,21 +167,24 @@ router.post('/sendVerifyCode', async(req, res) => {
         if (error) {
             return res.status(500).json({
                 statusCode: 500,
+                data: {},
                 message: `Failed to send authentication email to ${req.body.email}`
             });
         } 
         cache.put(req.body.email, verifyCode, 180000);
         res.status(200).send({
+            data: {},
             message: `Successfully send authentication email to ${req.body.email}` 
         });
         transporter.close();
     });
 });
+
 // 인증번호 검증
 router.post('/confirmVerifyCode', async(req, res) =>{
     const code = cache.get(req.body.email);
     if (!code) {
-        res.status(400).send({ 
+        res.status(404).send({ 
             statucCode: 1100,
             data: {},
             message: "verify code doesn't exist. expired or not created",
@@ -198,6 +206,7 @@ router.post('/confirmVerifyCode', async(req, res) =>{
     }
 });
 
+//로그아웃
 router.post('/logout', authJWT, async (req, res, next) => {
     const delRefresh = await jwt.logout(req.email);
     if (delRefresh === false) {
@@ -213,7 +222,50 @@ router.post('/logout', authJWT, async (req, res, next) => {
             }
         })
     }
-})
+});
 
+// 이메일 찾기
+router.get('/findEmail', async(req, res) => {
+    const [member] = await da.promise().query(`
+        SELECT member_id FROM member WHERE member_name = '${req.query.name}' AND member_id = '${req.query.email}'
+    `)
+    if (member.length == 0) {
+        res.status(404).send({
+            statusCode: 404, 
+            data: {},
+            message: "member not found" 
+        })
+    } else {
+        res.status(200).send({
+            data: {
+                isMember: true
+            }
+        })
+    }
+});
 
+// 비밀번호 재설정 존재하는 이메일일 때만 실행가능
+router.patch('/resetpwd', async(req, res)=> {
+    const emailVerified = jwt.emailVerify(req.body.emailToken); 
+    if (emailVerified === false) {
+        return res.status(400).json({
+            statusCode: 1120,
+            data: {},
+            message: "invalid email token, email token expired" 
+        })
+    }
+    bcrypt.genSalt(saltRounds, (err, salt) => {
+        bcrypt.hash(req.body.pwd, salt, (err, encrypted) => {
+            db.promise().query(`
+                UPDATE member SET member_pwd = '${encrypted}' WHERE member_email = '${emailVerified}'
+            `).then(() => {
+                res.status(200).send({
+                    data: {
+                        updatePWD: true
+                    }
+                })
+            })
+        })
+    })
+});
 module.exports = router;
