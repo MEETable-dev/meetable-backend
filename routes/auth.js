@@ -16,7 +16,6 @@ var appDir = path.dirname(require.main.filename);
 // 회원가입
 router.post('/signup', async(req, res) => {
     //redis 연결 for refresh token 저장
-    redisClient.connect().then();
     //signToken 해체
     const signInfoVerified = jwt.signVerify(req.body.signToken);
     if (signInfoVerified === false) {
@@ -27,7 +26,8 @@ router.post('/signup', async(req, res) => {
         })
     }
     // 이메일 토큰이 만료된 경우
-    const emailVerified = jwt.emailVerify(signInfoVerified.email); 
+    const emailVerified = jwt.emailVerify(signInfoVerified.email);
+    console.log(emailVerified)
     if (emailVerified === false) {
         return res.status(400).json({
             statusCode: 1120,
@@ -40,7 +40,7 @@ router.post('/signup', async(req, res) => {
         bcrypt.hash(signInfoVerified.pwd, salt, (err, encrypted) => {
             db.promise().query(`
                 INSERT INTO member(member_name, member_email, member_pwd, is_accept_marketing)
-                values('${signInfoVerified.name}','${emailVerified}', '${encrypted}','${req.body.marketingPolicy}')
+                VALUES('${signInfoVerified.name}','${emailVerified.email}', '${encrypted}','${req.body.marketingPolicy}')
             `).then( () => {
                 const accessToken = jwt.access(signInfoVerified.email);
                 const refreshToken = jwt.refresh();
@@ -69,12 +69,11 @@ router.post('/signup', async(req, res) => {
 
 //로그인 회원 존재 시 JWT발급 존재 안하면 404에러 발생
 router.post('/login', async(req, res) => {
-    redisClient.connect().then();
     const [member] = await db.promise().query(`
         SELECT * FROM member WHERE member_email = '${req.body.email}'
     `)
     if (member.length == 0) {
-        return res.status(404).jsons({
+        return res.status(404).json({
             statusCode: 404, 
             data: {},
             message: "member not found" 
@@ -131,7 +130,6 @@ router.get('/test', (req, res) => {
                 const accessToken = (req.headers.authorization).split('Bearer ')[1];
                 res.status(200).send({message: `hello ${accessToken}`})
             }
-
         }
        
     }

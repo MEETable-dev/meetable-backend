@@ -315,6 +315,92 @@
           }
         ]
       }
+    },
+    "/promise/username": {
+      "get": {
+        "description": "return username if access token available",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Found user name"
+          },
+          "400": {
+            "description": "No header"
+          },
+          "401": {
+            "description": "access denied(non member) or jwt expired"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/promise/create": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "promise_name": {
+                  "example": "string"
+                },
+                "weekvsdate": {
+                  "example": "W or D"
+                },
+                "ampmvstime": {
+                  "example": "T or F"
+                },
+                "start_time": {
+                  "example": "09:00:00"
+                },
+                "end_time": {
+                  "example": "17:00:00"
+                },
+                "date": {
+                  "example": [
+                    "2023-12-17",
+                    "2023-12-25"
+                  ]
+                },
+                "canallconfirm": {
+                  "example": "T or F"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
     }
   }
 }

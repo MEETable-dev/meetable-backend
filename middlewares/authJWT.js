@@ -1,6 +1,7 @@
 const { verify } = require('../utils/jwt-util');
 
 const authJWT = (req, res, next) => {
+    console.log(req.headers.authorization)
     if (req.headers.authorization) {
       const token = req.headers.authorization.split('Bearer ')[1]; // header에서 access token을 가져옵니다.
       const result = verify(token); // token을 검증합니다.
@@ -17,4 +18,4 @@ const authJWT = (req, res, next) => {
     }
   };
   
-  module.exports = authJWT;
+module.exports = authJWT;

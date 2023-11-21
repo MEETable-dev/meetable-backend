@@ -7,4 +7,12 @@ const redisClient = redis.createClient({
    legacyMode: true, // 반드시 설정
 });
 
+
+(async () => {
+    await redisClient.connect();
+})();
+
+redisClient.on('connect', () => console.log('::> Redis Client Connected'));
+redisClient.on('error', (err) => console.log('<:: Redis Client Error', err));
+
 module.exports = redisClient
