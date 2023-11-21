@@ -1,0 +1,42 @@
+{
+    "whole_promise": [
+        {
+            "folder_name": "folder1",
+            "promise": [
+                {
+                    "promise_name": "promise1",
+                    "promise_id": 1,
+                    "is_bookmark": "T"
+                },
+                {
+                    "promise_name": "promise2",
+                    "promise_id": 2,
+                    "is_bookmark": "F"
+                }
+            ]
+        },
+        {
+            "promise_name": "promise6",
+            "promise_id": 6
+        },
+        {
+            "folder_name": "folder2",
+            "promise": [
+                {
+                    "promise_name": "promise3",
+                    "promise_id": 3
+                },
+                {
+                    "promise_name": "promise4",
+                    "promise_id": 4
+                }
+            ]
+        },
+        {
+            "promise_name": "promise5",
+            "promise_id": 5
+        }
+    ] 
+}
+
+

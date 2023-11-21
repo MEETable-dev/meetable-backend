@@ -17,10 +17,9 @@
   ],
   "securityDefinitions": {
     "bearerAuth": {
+      "name": "authorization",
       "type": "apiKey",
-      "scheme": "bearer",
-      "in": "header",
-      "bearerFormat": "JWT"
+      "in": "header"
     }
   },
   "paths": {
@@ -152,13 +151,6 @@
     "/auth/test": {
       "get": {
         "description": "",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "type": "string"
-          }
-        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -262,7 +254,7 @@
       }
     },
     "/auth/resetpwd": {
-      "post": {
+      "patch": {
         "description": "",
         "parameters": [
           {
@@ -291,13 +283,6 @@
     "/auth/logout": {
       "post": {
         "description": "",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "type": "string"
-          }
-        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -319,13 +304,6 @@
     "/promise/username": {
       "get": {
         "description": "return username if access token available",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "type": "string"
-          }
-        ],
         "responses": {
           "200": {
             "description": "Found user name"
@@ -348,11 +326,6 @@
       "post": {
         "description": "",
         "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "type": "string"
-          },
           {
             "name": "body",
             "in": "body",
@@ -393,6 +366,67 @@
           },
           "401": {
             "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/home/bookmark": {
+      "patch": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "isBookmark": {
+                  "example": "T or F"
+                },
+                "promiseId": {
+                  "example": 1
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/home/folder": {
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "foldereName": {
+                  "example": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         },
         "security": [

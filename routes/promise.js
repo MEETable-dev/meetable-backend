@@ -86,19 +86,20 @@ router.post('/create', authMember, async(req, res) => {
         `)
         res.status(201).send({ 
             data: {
-                "promiseCode": promiseId + "-" + randomString,
+                "promiseCode": promiseId + "_" + randomString,
             },
             message: "new promise generated"
         });
     } else { //비회원인 경우
         res.status(201).send({ 
             data: {
-                "promiseCode": promiseId + "-" + randomString,
+                "promiseCode": promiseId + "_" + randomString,
             },
             message: "new promise generated"
         });
     }
 });
+
 
 
 
