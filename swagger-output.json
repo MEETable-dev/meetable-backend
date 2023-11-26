@@ -435,6 +435,37 @@
           }
         ]
       }
+    },
+    "/home/totalpromise": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "name: 이름 순 정렬, id: 생성일 순 정렬",
+            "schema": {
+              "type": "string"
+              }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "access denied"
+          },
+          "500": {
+            "description": "some errors"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
     }
   }
 }

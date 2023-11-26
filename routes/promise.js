@@ -3,14 +3,7 @@ const router = express.Router();
 const db = require('../db');
 const authMember = require('../middlewares/authmember');
 
-// promise_sequence를 계산하는 함수
-async function calculatePromiseSequence(memberId) {
-    const result = await db.promise().query(`
-        SELECT MAX(promise_sequence) AS max_sequence FROM memberjoin WHERE member_id = ${memberId}
-    `);
-    return (result[0].max_sequence || 0) + 1;
-}
-
+// 
 function generateRandomString(length) {
     let result = '';
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -20,6 +13,8 @@ function generateRandomString(length) {
     }
     return result;
 }
+
+// 새 약속잡기(로그인 한 경우 유저 이름 제공)
 router.get('/username', authMember, async(req, res) => {
     if (req.isMember === true) {
         res.status(200).send({
@@ -79,10 +74,18 @@ router.post('/create', authMember, async(req, res) => {
         
     }
     if (req.isMember === true) { //회원인 경우
-        const promise_sequence = await calculatePromiseSequence(req.memberId);
         await db.promise().query(`
-            INSERT INTO memberjoin(member_id, promise_id, member_promise_name, promise_sequence, canconfirm)
-            VALUES ('${req.memberId}', '${promiseId}', '${req.body.promise_name}', '${promise_sequence}', 'T')
+            INSERT INTO memberjoin(member_id, promise_id, member_promise_name, canconfirm)
+            VALUES ('${req.memberId}', '${promiseId}', '${req.body.promise_name}', 'T')
+        `)
+        let resultFolder;
+        resultFolder = await db.promise().query(`
+            SELECT folder_id FROM folder
+            WHERE folder_name = 'meetable' AND member_id = ${req.memberId}
+        `)
+        await db.promise().query(`
+            INSERT INTO FOLDER_PROMISE(folder_id, promise_id)
+            VALUES (${resultFolder[0].folder_id}, ${promiseId})
         `)
         res.status(201).send({ 
             data: {

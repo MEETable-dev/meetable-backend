@@ -35,10 +35,12 @@ router.post('/signup', async(req, res) => {
             message: "invalid email token, email token expired" 
         })
     }
+    let result;
+    let memberId;
     // 비밀번호 저장 때문에 bcrypt 사용
     bcrypt.genSalt(saltRounds, (err, salt) => {
         bcrypt.hash(signInfoVerified.pwd, salt, (err, encrypted) => {
-            db.promise().query(`
+            result = db.promise().query(`
                 INSERT INTO member(member_name, member_email, member_pwd, is_accept_marketing)
                 VALUES('${signInfoVerified.name}','${emailVerified.email}', '${encrypted}','${req.body.marketingPolicy}')
             `).then( () => {
@@ -65,6 +67,13 @@ router.post('/signup', async(req, res) => {
             })
         })
     })
+    memberId = result[0].insertId;
+    await db.promise().query(`
+        INSERT INTO folder(folder_name, member_id)
+        VALUES 
+        ('meetable', ${memberId}),
+        ('trash', ${memberId})
+    `)
 });
 
 //로그인 회원 존재 시 JWT발급 존재 안하면 404에러 발생

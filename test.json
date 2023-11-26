@@ -2,6 +2,7 @@
     "whole_promise": [
         {
             "folder_name": "folder1",
+            "folder_id": 1, 
             "promise": [
                 {
                     "promise_name": "promise1",
