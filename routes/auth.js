@@ -17,63 +17,57 @@ var appDir = path.dirname(require.main.filename);
 router.post('/signup', async(req, res) => {
     //redis 연결 for refresh token 저장
     //signToken 해체
-    const signInfoVerified = jwt.signVerify(req.body.signToken);
-    if (signInfoVerified === false) {
-        return res.status(400).json({
-            statusCode: 1020, 
-            data: {},
-            message: "invalid sign token" 
-        })
-    }
-    // 이메일 토큰이 만료된 경우
-    const emailVerified = jwt.emailVerify(signInfoVerified.email);
-    console.log(emailVerified)
-    if (emailVerified === false) {
-        return res.status(400).json({
-            statusCode: 1120,
-            data: {},
-            message: "invalid email token, email token expired" 
-        })
-    }
-    let result;
-    let memberId;
-    // 비밀번호 저장 때문에 bcrypt 사용
-    bcrypt.genSalt(saltRounds, (err, salt) => {
-        bcrypt.hash(signInfoVerified.pwd, salt, (err, encrypted) => {
-            result = db.promise().query(`
-                INSERT INTO member(member_name, member_email, member_pwd, is_accept_marketing)
-                VALUES('${signInfoVerified.name}','${emailVerified.email}', '${encrypted}','${req.body.marketingPolicy}')
-            `).then( () => {
-                const accessToken = jwt.access(signInfoVerified.email);
+    try {
+        const signInfoVerified = jwt.signVerify(req.body.signToken);
+        if (signInfoVerified === false) {
+            return res.status(400).json({
+                statusCode: 1020, 
+                data: {},
+                message: "invalid sign token" 
+            })
+        }
+        // 이메일 토큰이 만료된 경우
+        const emailVerified = jwt.emailVerify(signInfoVerified.email);
+        console.log(emailVerified)
+        if (emailVerified === false) {
+            return res.status(400).json({
+                statusCode: 1120,
+                data: {},
+                message: "invalid email token, email token expired" 
+            })
+        }
+        const salt = await bcrypt.genSalt(saltRounds);
+        const encrypted = await bcrypt.hash(signInfoVerified.pwd, salt);
+
+        const insertMemberResult =  await db.promise().query(`
+            INSERT INTO member(member_name, member_email, member_pwd, is_accept_marketing)
+            VALUES('${signInfoVerified.name}','${emailVerified.email}', '${encrypted}','${req.body.marketingPolicy}')
+        `)
+        const memberId = insertMemberResult[0].insertId;
+        await db.promise().query(`
+            INSERT INTO folder(folder_name, member_id)
+            VALUES 
+            ('meetable', ${memberId}),
+            ('trash', ${memberId})
+        `)
+        const accessToken = jwt.access(signInfoVerified.email);
                 const refreshToken = jwt.refresh();
                 redisClient.set(signInfoVerified.email, refreshToken);
                 res.status(201).send({ 
-                    data: {
-                        "accessToken": accessToken,
-                        "refreshToken": refreshToken
-                    },
+                    accessToken: accessToken,
+                    refreshToken: refreshToken,
                     message: "signup succeed"
                 });
-            })
-            .catch(err => {
-                if(err.errno===1062){
-                    res.status(400).send({ 
-                        statusCode: 1062, 
-                        data: {},
-                        message: "email already exists" 
-                    });
-                }
-                console.log(err);
-            })
-        })
-    })
-    memberId = result[0].insertId;
-    await db.promise().query(`
-        INSERT INTO folder(folder_name, member_id)
-        VALUES 
-        ('meetable', ${memberId}),
-        ('trash', ${memberId})
-    `)
+    } catch (err) {
+        if(err.errno===1062){
+            res.status(400).send({ 
+                statusCode: 1062, 
+                data: {},
+                message: "email already exists" 
+            });
+        }
+        console.log(err);
+    }
 });
 
 //로그인 회원 존재 시 JWT발급 존재 안하면 404에러 발생
