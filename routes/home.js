@@ -74,7 +74,7 @@ router.get('/totalpromise', authMember, async(req, res) => {
             let promises;
             let bookmarked;
             bookmarked = await db.promise().query(`
-                SELECT p.promise_name, p.promise_id, mj.is_bookmark, mj.last_bookmarked_at
+                SELECT p.promise_name, p.promise_id, p.promise_code, mj.is_bookmark, mj.last_bookmarked_at
                 FROM folder f
                 JOIN folder_promise fp ON f.folder_id = fp.folder_id
                 JOIN promise p ON fp.promise_id = p.promise_id
@@ -103,20 +103,44 @@ router.get('/totalpromise', authMember, async(req, res) => {
                     ORDER BY p.promise_id;
                 `);
             }
-            const bookmarkFormat = bookmarked[0].map(row => ({
-                promiseName: row.promise_name,
-                promiseCode: row.promise_id + "_" + row.promise_code
-            }))
-            const promiseFormat = promises[0].map(row => ({
-                promiseName: row.promise_name,
-                promiseCode: row.promise_id + "_" + row.promise_code,
-                isBookmark: row.is_bookmark
-            }));
-            res.status(200).send({
-                bookmark: bookmarkFormat,
-                promise: promiseFormat,
-                message: "member total promise list"
-            })
+            if (bookmarked !== undefined && promises !== undefined) {
+                const bookmarkFormat = bookmarked[0].map(row => ({
+                    promiseName: row.promise_name,
+                    promiseCode: row.promise_id + "_" + row.promise_code
+                }))
+                const promiseFormat = promises[0].map(row => ({
+                    promiseName: row.promise_name,
+                    promiseCode: row.promise_id + "_" + row.promise_code,
+                    isBookmark: row.is_bookmark
+                }));
+                res.status(200).send({
+                    bookmark: bookmarkFormat,
+                    promise: promiseFormat,
+                    sortBy: req.query.sortBy,
+                    message: "member total promise list"
+                })
+            } else if (bookmarked === undefined) {
+                const promiseFormat = promises[0].map(row => ({
+                    promiseName: row.promise_name,
+                    promiseCode: row.promise_id + "_" + row.promise_code,
+                    isBookmark: row.is_bookmark
+                }));
+                res.status(200).send({
+                    bookmark: {},
+                    promise: promiseFormat,
+                    sortBy: req.query.sortBy,
+                    message: "member total promise list"
+                })
+            } else if (bookmarked === undefined && promises === undefined) {
+                res.status(200).send({
+                    bookmark: {},
+                    promise: {},
+                    sortBy: req.query.sortBy,
+                    message: "member total promise list"
+                })
+            }
+            
+            
 
         } catch (err) {
             res.status(500).send({

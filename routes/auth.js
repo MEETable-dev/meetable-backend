@@ -48,14 +48,17 @@ router.post('/signup', async(req, res) => {
             ('meetable', ${memberId}),
             ('trash', ${memberId})
         `)
-        const accessToken = jwt.access(signInfoVerified.email);
-                const refreshToken = jwt.refresh();
-                redisClient.set(signInfoVerified.email, refreshToken);
-                res.status(201).send({ 
-                    accessToken: accessToken,
-                    refreshToken: refreshToken,
-                    message: "signup succeed"
-                });
+        const [member] = await db.promise().query(`
+            SELECT * FROM member WHERE member_email = '${emailVerified.email}'
+        `)
+        const accessToken = jwt.access(member[0]);
+        const refreshToken = jwt.refresh();
+        redisClient.set(signInfoVerified.email, refreshToken);
+        res.status(201).send({ 
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+            message: "signup succeed"
+        });
     } catch (err) {
         if(err.errno===1062){
             res.status(400).send({ 

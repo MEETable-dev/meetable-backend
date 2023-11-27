@@ -1,11 +1,9 @@
 const { verify } = require('../utils/jwt-util');
 
 const authMember = (req, res, next) => {
-    console.log(req.headers.authorization)
     if (req.headers === undefined) {
         res.status(400).send({
             statusCode: 1200,
-            data: {},
             message: "no header",
           });
     } else {
@@ -21,11 +19,14 @@ const authMember = (req, res, next) => {
                 req.isMember = true;
                 req.memberId = result.email.email.member_id
                 req.nickname = result.email.email.member_name;
+                // console.log(result)
+                // console.log(req.isMember)
+                // console.log(req.memberId)
+                // console.log(req.nickname)
                 next();
             } else { // 검증에 실패하거나 토큰이 만료되었다면 클라이언트에게 메세지를 담아서 응답합니다.
                 res.status(401).send({
                     statusCode: 1000,
-                    data: {},
                     message: result.message, // jwt가 만료되었다면 메세지는 'jwt expired'입니다.
                 });
             }

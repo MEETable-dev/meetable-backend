@@ -74,8 +74,7 @@ router.post('/create', authMember, async(req, res) => {
             INSERT INTO memberjoin(member_id, promise_id, member_promise_name, canconfirm)
             VALUES ('${req.memberId}', '${promiseId}', '${req.body.promise_name}', 'T')
         `)
-        let resultFolder;
-        resultFolder = await db.promise().query(`
+        const [resultFolder] = await db.promise().query(`
             SELECT folder_id FROM folder
             WHERE folder_name = 'meetable' AND member_id = ${req.memberId}
         `)
@@ -94,9 +93,4 @@ router.post('/create', authMember, async(req, res) => {
         });
     }
 });
-
-
-
-
-
 module.exports = router;
