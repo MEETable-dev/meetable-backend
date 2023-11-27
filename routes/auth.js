@@ -22,7 +22,6 @@ router.post('/signup', async(req, res) => {
         if (signInfoVerified === false) {
             return res.status(400).json({
                 statusCode: 1020, 
-                data: {},
                 message: "invalid sign token" 
             })
         }
@@ -32,7 +31,6 @@ router.post('/signup', async(req, res) => {
         if (emailVerified === false) {
             return res.status(400).json({
                 statusCode: 1120,
-                data: {},
                 message: "invalid email token, email token expired" 
             })
         }
@@ -61,8 +59,7 @@ router.post('/signup', async(req, res) => {
     } catch (err) {
         if(err.errno===1062){
             res.status(400).send({ 
-                statusCode: 1062, 
-                data: {},
+                statusCode: 1062,
                 message: "email already exists" 
             });
         }
@@ -77,8 +74,7 @@ router.post('/login', async(req, res) => {
     `)
     if (member.length == 0) {
         return res.status(404).json({
-            statusCode: 404, 
-            data: {},
+            statusCode: 404,
             message: "member not found" 
         })
     }
@@ -89,15 +85,13 @@ router.post('/login', async(req, res) => {
             redisClient.set(req.body.email, refreshToken);
 
             res.status(200).send({
-                data: {
-                    accessToken: accessToken,
-                    refreshToken: refreshToken
-                }
+                accessToken: accessToken,
+                refreshToken: refreshToken,
+                message: "login succeed"
             });
         } else {
             res.status(401).send({
                 statusCode: 1001,
-                data: {},
                 message: "invalid password"
             });
         }
@@ -108,10 +102,9 @@ router.post('/login', async(req, res) => {
 // Todo: socialType 받아서 socialType 별 signToken 발행 구현  
 router.post('/signToken', async(req, res) => {
     const signToken = jwt.sign(req.body.name, req.body.emailToken, req.body.pwd);
-    res.status(200).send({ 
-        data: { 
-            signToken: signToken
-        }
+    res.status(200).send({  
+        signToken: signToken,
+        message: "sign token provided"
     });
 });
 
@@ -168,13 +161,11 @@ router.post('/sendVerifyCode', async(req, res) => {
         if (error) {
             return res.status(500).json({
                 statusCode: 500,
-                data: {},
                 message: `Failed to send authentication email to ${req.body.email}`
             });
         } 
         cache.put(req.body.email, verifyCode, 180000);
         res.status(200).send({
-            data: {},
             message: `Successfully send authentication email to ${req.body.email}` 
         });
         transporter.close();
@@ -186,23 +177,20 @@ router.post('/confirmVerifyCode', async(req, res) =>{
     const code = cache.get(req.body.email);
     if (!code) {
         res.status(404).send({ 
-            statucCode: 1100,
-            data: {},
+            statusCode: 1100,
             message: "verify code doesn't exist. expired or not created",
         });
     } else if (code != req.body.verifyCode) {
         res.status(401).send({
             statusCode: 1110,
-            data: {},
             message: "wrong verify code"
         });
     } else {
         cache.del(req.body.email);
         const emailToken = jwt.email(req.body.email);
         return res.status(201).send({ 
-            data: {
-                emailToken: emailToken
-            }
+            emailToken: emailToken,
+            message: "email token provided"
         });
     }
 });
@@ -213,14 +201,12 @@ router.post('/logout', authJWT, async (req, res, next) => {
     if (delRefresh === false) {
         res.status(404).send({
             statusCode: 1130,
-            data: {},
             message: "refresh token not found"
         })
     } else {
         res.status(200).send({
-            data: {
-                isLogout: true
-            }
+            isLogout: true,
+            message: "logout succeed"
         })
     }
 });
@@ -233,14 +219,12 @@ router.get('/findEmail', async(req, res) => {
     if (member.length == 0) {
         res.status(404).send({
             statusCode: 404, 
-            data: {},
             message: "member not found" 
         })
     } else {
         res.status(200).send({
-            data: {
-                isMember: true
-            }
+            isMember: true,
+            message: "member found"
         })
     }
 });
@@ -251,7 +235,6 @@ router.patch('/resetpwd', async(req, res)=> {
     if (emailVerified === false) {
         return res.status(400).json({
             statusCode: 1120,
-            data: {},
             message: "invalid email token, email token expired" 
         })
     }
@@ -261,9 +244,8 @@ router.patch('/resetpwd', async(req, res)=> {
                 UPDATE member SET member_pwd = '${encrypted}' WHERE member_email = '${emailVerified}'
             `).then(() => {
                 res.status(200).send({
-                    data: {
-                        updatePWD: true
-                    }
+                    updatePWD: true,
+                    message: "successfully update pwd"
                 })
             })
         })

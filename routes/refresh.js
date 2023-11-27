@@ -1,5 +1,5 @@
 // refresh.js
-const { access, verify, refreshVerify } = require('../utils/jwt-util');
+const { access, refreshVerify } = require('../utils/jwt-util');
 const jwt = require('jsonwebtoken');
 
 const refresh = async (req, res) => {
@@ -15,7 +15,6 @@ const refresh = async (req, res) => {
         if (decoded === null) {
             res.status(401).send({
                 statusCode: 1060, 
-                data: {},
                 message: "wrong access token, no email info in access token" 
             });
         }
@@ -27,23 +26,20 @@ const refresh = async (req, res) => {
         if (refreshResult.ok === false) {
             res.status(401).send({
                 statusCode: 1070, 
-                data: {},
                 message: "refresh token expired" 
             });
         } else {
         // 2. refresh token은 만료되지 않은 경우 => 새로운 access token을 발급
             const newAccessToken = access(decoded.email);
             res.status(200).send({ // 새로 발급한 access token과 원래 있던 refresh token 모두 클라이언트에게 반환합니다.
-                data: {
-                    accessToken: newAccessToken,
-                    refreshToken: refreshToken
-                }
+                accessToken: newAccessToken,
+                refreshToken: refreshToken,
+                message: "new access token provided"
             });
         }
     } else { // access token 또는 refresh token이 헤더에 없는 경우
         res.status(404).send({
-            statusCode: 1080, 
-            data: {},
+            statusCode: 1080,
             message: "no refresh token or access token in header"
         });
     }

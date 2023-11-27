@@ -18,15 +18,12 @@ function generateRandomString(length) {
 router.get('/username', authMember, async(req, res) => {
     if (req.isMember === true) {
         res.status(200).send({
-            data: {
-                name: req.nickname
-            },
-            message: "user name"
+            name: req.nickname,
+            message: "user name provided"
         })
     } else {
         res.status(401).send({
             statusCode: 1000,
-            data: {},
             message: "access denied."
         });
     }
@@ -71,7 +68,6 @@ router.post('/create', authMember, async(req, res) => {
                 `)
             }
         }
-        
     }
     if (req.isMember === true) { //회원인 경우
         await db.promise().query(`
@@ -88,16 +84,12 @@ router.post('/create', authMember, async(req, res) => {
             VALUES (${resultFolder[0].folder_id}, ${promiseId})
         `)
         res.status(201).send({ 
-            data: {
-                "promiseCode": promiseId + "_" + randomString,
-            },
+            promiseCode: promiseId + "_" + randomString,
             message: "new promise generated"
         });
     } else { //비회원인 경우
         res.status(201).send({ 
-            data: {
-                "promiseCode": promiseId + "_" + randomString,
-            },
+            promiseCode: promiseId + "_" + randomString,
             message: "new promise generated"
         });
     }

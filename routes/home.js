@@ -13,16 +13,13 @@ router.patch('/bookmark', authMember, async(req, res) => {
             WHERE member_id = ${req.memberId} AND promise_id = ${req.body.promiseId};
         `).then( () => {
             res.status(200).send({
-                data: {
-                    updateBookmark: true
-                },
+                updateBookmark: true,
                 message: "bookmark update succeed"
             })
         })
     } else {
         res.status(401).send({
             statusCode: 1000,
-            data: {},
             message: "access denied."
         });
     }
@@ -37,16 +34,13 @@ router.post('/folder', authMember, async(req, res) => {
         `);
         folderId = result[0].insertId;
         res.status(201).send({
-            data: {
-                folderId: folderId,
-                createFolder: true
-            },
+            folderId: folderId,
+            createFolder: true,
             message: "folder created"
         })
     } else {
         res.status(401).send({
             statusCode: 1000,
-            data: {},
             message: "access denied."
         });
     }
@@ -61,16 +55,13 @@ router.patch('/folder', authMember, async(req, res) => {
             WHERE folder_id = ${req.body.folderId} AND member_id = ${req.memberId}
         `).then( () => {
             res.status(200).send({
-                data: {
-                    folderNameChanged: true
-                },
+                folderNameChanged: true,
                 message: "folder name changed"
             })
         })
     } else {
         res.status(401).send({
             statusCode: 1000,
-            data: {},
             message: "access denied."
         });
     }
@@ -122,23 +113,19 @@ router.get('/totalpromise', authMember, async(req, res) => {
                 isBookmark: row.is_bookmark
             }));
             res.status(200).send({
-                data: {
-                    bookmark: bookmarkFormat,
-                    promise: promiseFormat
-                },
+                bookmark: bookmarkFormat,
+                promise: promiseFormat,
                 message: "member total promise list"
             })
 
         } catch (err) {
             res.status(500).send({
-                data: {},
                 message: `Error retreving promises: ${err.message}`
             })
         }
     } else {
         res.status(401).send({
             statusCode: 1000,
-            data: {},
             message: "access denied."
         });
     }
