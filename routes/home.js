@@ -199,6 +199,7 @@ router.patch('/deletepromise', authMember, async(req, res) => {
             `);
 
             res.status(200).send({
+                movedtoTrash: true,
                 message: "Promise moved to trash successfully"
             });
         } catch (error) {
@@ -279,6 +280,27 @@ router.get('/trash', authMember, async(req, res) => {
         res.status(401).send({
             statusCode: 1000,
             message: "Access denied."
+        });
+    }
+});
+
+// 약속명 변경
+router.patch('/promisename', authMember, async(req, res) => {
+    if (req.isMember === true) {
+        await db.promise().query(`
+            UPDATE memberjoin
+            SET member_promise_name = '${req.body.promiseName}'
+            WHERE promise_id = ${req.body.promiseId} AND member_id = ${req.memberId}
+        `).then( () => {
+            res.status(200).send({
+                promiseNameChanged: true,
+                message: "promise name changed"
+            })
+        })
+    } else {
+        res.status(401).send({
+            statusCode: 1000,
+            message: "access denied."
         });
     }
 });
