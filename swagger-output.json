@@ -466,6 +466,66 @@
           }
         ]
       }
+    },
+    "/home/deletepromise": {
+      "patch": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "promiseId": {
+                  "example": 1
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/home/trash": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "sortBy",
+            "in": "query",
+            "description": "name: 이름 순 정렬, id: 생성일 순 정렬",
+            "schema": {
+              "type": "string"
+              }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "access denied"
+          },
+          "500": {
+            "description": "some errors"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
     }
   }
 }

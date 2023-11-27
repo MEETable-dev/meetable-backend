@@ -69,12 +69,20 @@ router.patch('/folder', authMember, async(req, res) => {
 
 // 즐겨찾기 및 전체 폴더/약속 목록 불러오기
 router.get('/totalpromise', authMember, async(req, res) => {
+    if (req.query.sortBy === undefined) {
+        res.status(400).send({
+            statusCode: 1024,
+            message: "required query missed: sortBy"
+        })
+    }
     if (req.isMember === true) {
         try {
             let promises;
             let bookmarked;
             bookmarked = await db.promise().query(`
-                SELECT p.promise_name, p.promise_id, p.promise_code, mj.is_bookmark, mj.last_bookmarked_at
+                SELECT p.promise_name, p.promise_id, p.promise_code, mj.is_bookmark, mj.last_bookmarked_at,
+                (SELECT COUNT(*) FROM memberjoin WHERE promise_id = p.promise_id) +
+                (SELECT COUNT(*) FROM nonmember WHERE promise_id = p.promise_id) AS participant_count
                 FROM folder f
                 JOIN folder_promise fp ON f.folder_id = fp.folder_id
                 JOIN promise p ON fp.promise_id = p.promise_id
@@ -84,7 +92,9 @@ router.get('/totalpromise', authMember, async(req, res) => {
             `)
             if (req.query.sortBy == "name") {
                 promises = await db.promise().query(`
-                    SELECT p.promise_name, p.promise_id, p.promise_code, mj.is_bookmark
+                    SELECT p.promise_name, p.promise_id, p.promise_code, mj.is_bookmark,
+                    (SELECT COUNT(*) FROM memberjoin WHERE promise_id = p.promise_id) +
+                    (SELECT COUNT(*) FROM nonmember WHERE promise_id = p.promise_id) AS participant_count
                     FROM folder f
                     JOIN folder_promise fp ON f.folder_id = fp.folder_id
                     JOIN promise p ON fp.promise_id = p.promise_id
@@ -94,7 +104,9 @@ router.get('/totalpromise', authMember, async(req, res) => {
                 `);
             } else if (req.query.sortBy == "id") {
                 promises = await db.promise().query(`
-                    SELECT p.promise_name, p.promise_id, p.promise_code, mj.is_bookmark
+                    SELECT p.promise_name, p.promise_id, p.promise_code, mj.is_bookmark,
+                    (SELECT COUNT(*) FROM memberjoin WHERE promise_id = p.promise_id) +
+                    (SELECT COUNT(*) FROM nonmember WHERE promise_id = p.promise_id) AS participant_count
                     FROM folder f
                     JOIN folder_promise fp ON f.folder_id = fp.folder_id
                     JOIN promise p ON fp.promise_id = p.promise_id
@@ -105,10 +117,13 @@ router.get('/totalpromise', authMember, async(req, res) => {
             }
             if (bookmarked !== undefined && promises !== undefined) {
                 const bookmarkFormat = bookmarked[0].map(row => ({
+                    count: row.participant_count,
                     promiseName: row.promise_name,
-                    promiseCode: row.promise_id + "_" + row.promise_code
+                    promiseCode: row.promise_id + "_" + row.promise_code,
+                    isBookmark: row.is_bookmark
                 }))
                 const promiseFormat = promises[0].map(row => ({
+                    count: row.participant_count,
                     promiseName: row.promise_name,
                     promiseCode: row.promise_id + "_" + row.promise_code,
                     isBookmark: row.is_bookmark
@@ -119,8 +134,9 @@ router.get('/totalpromise', authMember, async(req, res) => {
                     sortBy: req.query.sortBy,
                     message: "member total promise list"
                 })
-            } else if (bookmarked === undefined) {
+            } else if (bookmarked === undefined && promises !== undefined) {
                 const promiseFormat = promises[0].map(row => ({
+                    count: row.participant_count,
                     promiseName: row.promise_name,
                     promiseCode: row.promise_id + "_" + row.promise_code,
                     isBookmark: row.is_bookmark
@@ -140,10 +156,9 @@ router.get('/totalpromise', authMember, async(req, res) => {
                 })
             }
             
-            
-
         } catch (err) {
             res.status(500).send({
+                statusCode: 1234,
                 message: `Error retreving promises: ${err.message}`
             })
         }
@@ -153,6 +168,134 @@ router.get('/totalpromise', authMember, async(req, res) => {
             message: "access denied."
         });
     }
+});
+
+// 약속 삭제
+router.patch('/deletepromise', authMember, async(req, res) => {
+    if (req.isMember === true) {
+        try {
+            const promiseId = req.body.promiseId;
+            const memberId = req.memberId;
+
+            // 사용자의 'trash' 폴더 ID 찾기
+            const [findFolderResult] = await db.promise().query(`
+                SELECT folder_id FROM folder 
+                WHERE member_id = ${memberId} AND folder_name = 'trash'
+            `);
+
+            const trashFolderId = findFolderResult[0].folder_id;
+            
+            // 약속을 'trash' 폴더로 옮기기
+            await db.promise().query(`
+                UPDATE folder_promise
+                SET folder_id = ${trashFolderId}
+                WHERE promise_id = ${promiseId}
+            `);
+
+            await db.promise().query(`
+                UPDATE memberjoin
+                SET is_bookmark = 'F'
+                WHERE member_id = ${memberId} AND promise_id = ${promiseId}
+            `);
+
+            res.status(200).send({
+                message: "Promise moved to trash successfully"
+            });
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({
+                statusCode: 1234,
+                message: `Error moving promise to trash: ${error.message}`
+            });
+        }
+    } else {
+        res.status(401).send({
+            statusCode: 1000,
+            message: "Access denied."
+        });
+    }
+});
+
+//휴지통 약속 가져오기
+router.get('/trash', authMember, async(req, res) => {
+    if (req.query.sortBy === undefined) {
+        res.status(400).send({
+            statusCode: 1024,
+            message: "required query missed: sortBy"
+        })
+    }
+    if (req.isMember === true) {
+        try {
+            if (req.query.sortBy == "name") {
+                trash = await db.promise().query(`
+                    SELECT p.promise_name, p.promise_id, p.promise_code,
+                    (SELECT COUNT(*) FROM memberjoin WHERE promise_id = p.promise_id) +
+                    (SELECT COUNT(*) FROM nonmember WHERE promise_id = p.promise_id) AS participant_count
+                    FROM folder f
+                    JOIN folder_promise fp ON f.folder_id = fp.folder_id
+                    JOIN promise p ON fp.promise_id = p.promise_id
+                    LEFT JOIN memberjoin mj ON p.promise_id = mj.promise_id AND mj.member_id = ${req.memberId}
+                    WHERE f.member_id = ${req.memberId} AND f.folder_name = 'trash'
+                    ORDER BY p.promise_name;
+                `);
+            } else if (req.query.sortBy == "id") {
+                trash = await db.promise().query(`
+                    SELECT p.promise_name, p.promise_id, p.promise_code,
+                    (SELECT COUNT(*) FROM memberjoin WHERE promise_id = p.promise_id) +
+                    (SELECT COUNT(*) FROM nonmember WHERE promise_id = p.promise_id) AS participant_count
+                    FROM folder f
+                    JOIN folder_promise fp ON f.folder_id = fp.folder_id
+                    JOIN promise p ON fp.promise_id = p.promise_id
+                    LEFT JOIN memberjoin mj ON p.promise_id = mj.promise_id AND mj.member_id = ${req.memberId}
+                    WHERE f.member_id = ${req.memberId} AND f.folder_name = 'trash'
+                    ORDER BY p.promise_id;
+                `);
+            }
+            if (trash !== undefined) {
+                const trashFormat = trash[0].map(row => ({
+                    count: row.participant_count,
+                    promiseName: row.promise_name,
+                    promiseCode: row.promise_id + "_" + row.promise_code,
+                }));
+                res.status(200).send({
+                    trash: trashFormat,
+                    sortBy: req.query.sortBy,
+                    message: "trash promise list"
+                })
+            } else if (trash === undefined) {
+                res.status(200).send({
+                    trash: {},
+                    sortBy: req.query.sortBy,
+                    message: "trash promise list"
+                })
+            }
+        } catch (err) {
+            res.status(500).send({
+                statusCode: 1234,
+                message: `Error retreving promises: ${err.message}`
+            })
+        }
+    } else {
+        res.status(401).send({
+            statusCode: 1000,
+            message: "Access denied."
+        });
+    }
+});
+
+// 약속/폴더 내용 검색
+router.get('/search', authMember, async(req, res) => {
+
+});
+
+// 약속에서 빠지기
+router.delete('/backoutpromise', authMember, async(req, res) => {
+
+});
+
+// 휴지통 비우기
+router.delete('/backoutall', authMember, async(req, res) => {
+
 });
 
 // 폴더 삭제
@@ -169,28 +312,5 @@ router.get('/totalpromise', authMember, async(req, res) => {
 // router.delete('/folderpromise', authMember, async(req, res) => {
 
 // });
-
-// 약속 삭제
-router.delete('/promise', authMember, async(req, res) => {
-
-});
-
-// 약속/폴더 내용 검색
-router.get('/search', authMember, async(req, res) => {
-
-});
-
-
-// 인원수 체크(for 약속에서 빠지기)
-router.get('/checkpeople', authMember, async(req, res) => {
-
-});
-
-// 약속에서 빠지기
-router.post('/backoutpromise', authMember, async(req, res) => {
-
-});
-
-
 
 module.exports = router;
