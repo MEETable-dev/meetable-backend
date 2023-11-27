@@ -279,7 +279,7 @@ router.get('/trash', authMember, async(req, res) => {
     } else {
         res.status(401).send({
             statusCode: 1000,
-            message: "Access denied."
+            message: "access denied."
         });
     }
 });
@@ -307,12 +307,103 @@ router.patch('/promisename', authMember, async(req, res) => {
 
 // 약속/폴더 내용 검색
 router.get('/search', authMember, async(req, res) => {
+    if (req.isMember === true) {
+        try {
+            const searchTerm = req.query.searchTerm;
+            if (!searchTerm) {
+                return res.status(400).send({
+                    statusCode: 1024,
+                    message: "required query missing: searchTerm"
+                });
+            }
 
+            // promise_name을 기반으로 검색
+            const promises = await db.promise().query(`
+                SELECT p.promise_name, p.promise_id, p.promise_code, mj.is_bookmark
+                (SELECT COUNT(*) FROM memberjoin WHERE promise_id = p.promise_id) +
+                (SELECT COUNT(*) FROM nonmember WHERE promise_id = p.promise_id) AS participant_count
+                FROM folder f
+                JOIN folder_promise fp ON f.folder_id = fp.folder_id
+                JOIN promise p ON fp.promise_id = p.promise_id
+                LEFT JOIN memberjoin mj ON p.promise_id = mj.promise_id AND mj.member_id = ${req.memberId}
+                WHERE f.member_id = ${req.memberId} AND p.promise_name LIKE '%${searchTerm}%' AND f.folder_name = 'meetable'
+                ORDER BY p.promise_name;
+            `);
+
+            // 결과 포맷팅
+            const formattedPromises = promises[0].map(row => ({
+                count: row.participant_count,
+                promiseName: row.promise_name,
+                promiseCode: row.promise_id + "_" + row.promise_code,
+                isBookmark: row.is_bookmark
+            }));
+
+            res.status(200).send({
+                promise: formattedPromises,
+                message: "search result"
+            });
+        } catch (error) {
+            res.status(500).send({
+                message: `Error searching for promises: ${error.message}`
+            });
+        }
+    } else {
+        res.status(401).send({
+            message: "access denied."
+        });
+    }
 });
 
 // 약속에서 빠지기
 router.delete('/backoutpromise', authMember, async(req, res) => {
+    const promiseId = req.body.promiseId;
+    const isMember = req.isMember; // 회원 여부
 
+    if (!promiseId) {
+        return res.status(400).send({
+            statusCode: 1024,
+            message: "required body missed: promiseId"
+        });
+    }
+
+    try {
+        if (isMember) {
+            const memberId = req.memberId; // 회원 ID
+            // 회원인 경우, memberjoin 테이블에서 제거
+            await db.promise().query(`
+                DELETE FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId};
+            `);
+        } else {
+            // 비회원인 경우, nonmember 테이블에서 제거
+            const nonmemberId = req.nonmemberId; // 비회원 ID
+            await db.promise().query(`
+                DELETE FROM nonmember WHERE nonmember_id = ${nonmemberId} AND promise_id = ${promiseId};
+            `);
+        }
+
+        // 참여자 수 확인
+        const [participants] = await db.promise().query(`
+            SELECT 
+                (SELECT COUNT(*) FROM memberjoin WHERE promise_id = ${promiseId}) +
+                (SELECT COUNT(*) FROM nonmember WHERE promise_id = ${promiseId}) AS count
+        `);
+
+        if (participants[0].count === 1) {
+            // 참여자가 1명이면 promise 삭제
+            await db.promise().query(`
+                DELETE FROM promise WHERE promise_id = ${promiseId};
+            `);
+        }
+        res.status(200).send({
+            backedOut: true,
+            message: "successfully backed out of the promise"
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({
+            message: `Error backing out of promise: ${error.message}`
+        });
+    }
 });
 
 // 휴지통 비우기

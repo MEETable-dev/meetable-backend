@@ -1,8 +1,8 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "TEST API Docs",
-    "description": "test api 문서입니다",
+    "title": "MEETable API Docs",
+    "description": "MEETable api 문서입니다",
     "version": "1.0.0"
   },
   "host": "localhost:8000",
@@ -22,9 +22,34 @@
       "in": "header"
     }
   },
+  "tags": [
+    {
+      "name": "auth",
+      "description": "유저 인증 관련(회원가입/로그인)"
+    },
+    {
+      "name": "home",
+      "description": "홈 + 사이드바 + 전체 약속 목록"
+    },
+    {
+      "name": "promise",
+      "description": "약속 생성 및 약속 세부"
+    },
+    {
+      "name": "calendar",
+      "description": "일정/달력 관련"
+    },
+    {
+      "name": "member",
+      "description": "회원정보"
+    }
+  ],
   "paths": {
     "/auth/signup": {
       "post": {
+        "tags": [
+          "auth"
+        ],
         "description": "",
         "parameters": [
           {
@@ -54,6 +79,9 @@
     },
     "/auth/login": {
       "post": {
+        "tags": [
+          "auth"
+        ],
         "description": "",
         "parameters": [
           {
@@ -87,6 +115,9 @@
     },
     "/auth/signToken": {
       "post": {
+        "tags": [
+          "auth"
+        ],
         "description": "",
         "parameters": [
           {
@@ -117,6 +148,9 @@
     },
     "/auth/token": {
       "post": {
+        "tags": [
+          "auth"
+        ],
         "description": "",
         "parameters": [
           {
@@ -150,7 +184,7 @@
     },
     "/auth/test": {
       "get": {
-        "description": "",
+        "description": "test api",
         "responses": {
           "200": {
             "description": "OK"
@@ -168,6 +202,9 @@
     },
     "/auth/sendVerifyCode": {
       "post": {
+        "tags": [
+          "auth"
+        ],
         "description": "",
         "parameters": [
           {
@@ -195,6 +232,9 @@
     },
     "/auth/confirmVerifyCode": {
       "post": {
+        "tags": [
+          "auth"
+        ],
         "description": "",
         "parameters": [
           {
@@ -228,6 +268,9 @@
     },
     "/auth/findEmail": {
       "get": {
+        "tags": [
+          "auth"
+        ],
         "description": "",
         "parameters": [
           {
@@ -255,6 +298,9 @@
     },
     "/auth/resetpwd": {
       "patch": {
+        "tags": [
+          "auth"
+        ],
         "description": "",
         "parameters": [
           {
@@ -282,6 +328,9 @@
     },
     "/auth/logout": {
       "post": {
+        "tags": [
+          "auth"
+        ],
         "description": "",
         "responses": {
           "200": {
@@ -303,6 +352,9 @@
     },
     "/promise/username": {
       "get": {
+        "tags": [
+          "promise"
+        ],
         "description": "return username if access token available",
         "responses": {
           "200": {
@@ -324,6 +376,9 @@
     },
     "/promise/create": {
       "post": {
+        "tags": [
+          "promise"
+        ],
         "description": "",
         "parameters": [
           {
@@ -377,6 +432,9 @@
     },
     "/home/bookmark": {
       "patch": {
+        "tags": [
+          "home"
+        ],
         "description": "",
         "parameters": [
           {
@@ -409,7 +467,7 @@
     },
     "/home/folder": {
       "post": {
-        "description": "",
+        "description": "not in use",
         "parameters": [
           {
             "name": "body",
@@ -438,6 +496,9 @@
     },
     "/home/totalpromise": {
       "get": {
+        "tags": [
+          "home"
+        ],
         "description": "",
         "parameters": [
           {
@@ -469,6 +530,9 @@
     },
     "/home/deletepromise": {
       "patch": {
+        "tags": [
+          "home"
+        ],
         "description": "",
         "parameters": [
           {
@@ -498,6 +562,9 @@
     },
     "/home/trash": {
       "get": {
+        "tags": [
+          "home"
+        ],
         "description": "",
         "parameters": [
           {
@@ -529,6 +596,9 @@
     },
     "/home/promisename": {
       "patch": {
+        "tags": [
+          "home"
+        ],
         "description": "",
         "parameters": [
           {
@@ -550,6 +620,76 @@
         "responses": {
           "200": {
             "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/home/search": {
+      "get": {
+        "tags": [
+          "home"
+        ],
+        "description": "",
+        "parameters": [
+          {
+            "name": "searchTerm",
+            "in": "query",
+            "description": "검색어를 넣어주세요",
+            "schema": {
+              "type": "string"
+              }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "access denied"
+          },
+          "500": {
+            "description": "some errors"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/home/backoutpromise": {
+      "delete": {
+        "tags": [
+          "home"
+        ],
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "promiseId": {
+                  "example": 1
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }, "400": {
+            "description": "Bad Request"
+          }, "500": {
+            "description": "백엔드 에러"
           }
         },
         "security": [

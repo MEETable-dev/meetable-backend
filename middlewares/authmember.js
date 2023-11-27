@@ -10,6 +10,7 @@ const authMember = (req, res, next) => {
         if (req.headers.authorization.includes('@')) {
             // 비회원
             req.isMember = false;
+            req.nonmemberId = req.headers.authorization.split('@')[1];
             next();
         } else {
             // 회원
