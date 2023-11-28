@@ -11,6 +11,7 @@ const nodemailer = require('nodemailer');
 const ejs = require('ejs');
 const path = require('path');
 const authJWT = require('../middlewares/authJWT');
+const authMember = require('../middlewares/authmember');
 var appDir = path.dirname(require.main.filename);
 
 // 회원가입
@@ -233,25 +234,42 @@ router.get('/findEmail', async(req, res) => {
 });
 
 // 비밀번호 재설정 존재하는 이메일일 때만 실행가능
-router.patch('/resetpwd', async(req, res)=> {
-    const emailVerified = jwt.emailVerify(req.body.emailToken); 
-    if (emailVerified === false) {
-        return res.status(400).json({
-            statusCode: 1120,
-            message: "invalid email token, email token expired" 
-        })
-    }
-    bcrypt.genSalt(saltRounds, (err, salt) => {
-        bcrypt.hash(req.body.pwd, salt, (err, encrypted) => {
-            db.promise().query(`
-                UPDATE member SET member_pwd = '${encrypted}' WHERE member_email = '${emailVerified}'
-            `).then(() => {
-                res.status(200).send({
-                    updatePWD: true,
-                    message: "successfully update pwd"
+router.patch('/resetpwd', authMember, async(req, res)=> {
+    if (req.isMember === true) {
+        bcrypt.genSalt(saltRounds, (err, salt) => {
+            bcrypt.hash(req.body.pwd, salt, (err, encrypted) => {
+                db.promise().query(`
+                    UPDATE member SET member_pwd = '${encrypted}' WHERE member_email = '${req.email}'
+                `).then(() => {
+                    res.status(200).send({
+                        updatePWD: true,
+                        message: "successfully update pwd"
+                    })
                 })
             })
         })
-    })
+    } else {
+        const emailVerified = jwt.emailVerify(req.body.emailToken); 
+        if (emailVerified === false) {
+            return res.status(400).json({
+                statusCode: 1120,
+                message: "invalid email token, email token expired" 
+            })
+        }
+        bcrypt.genSalt(saltRounds, (err, salt) => {
+            bcrypt.hash(req.body.pwd, salt, (err, encrypted) => {
+                db.promise().query(`
+                    UPDATE member SET member_pwd = '${encrypted}' WHERE member_email = '${emailVerified}'
+                `).then(() => {
+                    res.status(200).send({
+                        updatePWD: true,
+                        message: "successfully update pwd"
+                    })
+                })
+            })
+        })
+    }
+    
+    
 });
 module.exports = router;

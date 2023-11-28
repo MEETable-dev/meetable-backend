@@ -349,6 +349,7 @@ router.get('/search', authMember, async(req, res) => {
         }
     } else {
         res.status(401).send({
+            statusCode: 1000,
             message: "access denied."
         });
     }
@@ -406,7 +407,7 @@ router.delete('/backoutpromise', authMember, async(req, res) => {
     }
 });
 
-// 휴지통 비우기
+// 휴지통 비우기 return으로 삭제된 약속 이름, 코드 보내자
 router.delete('/backoutall', authMember, async(req, res) => {
 
 });

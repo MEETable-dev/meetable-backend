@@ -20,6 +20,7 @@ const authMember = (req, res, next) => {
                 req.isMember = true;
                 req.memberId = result.email.email.member_id
                 req.nickname = result.email.email.member_name;
+                req.email = result.email.email.member_email;
                 // console.log(result)
                 // console.log(req.isMember)
                 // console.log(req.memberId)

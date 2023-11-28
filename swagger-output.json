@@ -698,6 +698,78 @@
           }
         ]
       }
+    },
+    "/member/info": {
+      "get": {
+        "tags": [
+          "member"
+        ],
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/member/resetname": {
+      "patch": {
+        "tags": [
+          "member"
+        ],
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "example": "seungho111"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/member/quit": {
+      "delete": {
+        "tags": [
+          "member"
+        ],
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }, "404": {
+            "description": "Not Found"
+          }, "500": {
+            "description": "백엔드 에러"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
     }
   }
 }
