@@ -21,9 +21,9 @@ const refresh = async (req, res) => {
 	
         /* access token의 decoding 된 값에서
         유저의 id를 가져와 refresh token을 검증합니다. */
-        const refreshResult = refreshVerify(refreshToken, decoded.email);
+        const refreshResult = await refreshVerify(refreshToken, decoded.email.member_email);
         // 1. refresh token이 만료된 경우 -> 새로 로그인
-        if (refreshResult.ok === false) {
+        if (refreshResult === false) {
             res.status(401).send({
                 statusCode: 1070, 
                 message: "refresh token expired" 

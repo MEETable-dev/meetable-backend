@@ -43,10 +43,11 @@ module.exports = {
     
     try {
       const data = await getAsync(memberEmail); // refresh token 가져오기
+      console.log(data)
+      console.log(token)
       if (token === data) {
         try {
-          jwt.verify(token, secret);
-          return true;
+          return jwt.verify(token, secret);
         } catch (err) {
           return false;
         }
