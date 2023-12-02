@@ -3,11 +3,16 @@ const router = express.Router();
 const db = require('../db');
 const authMember = require('../middlewares/authmember');
 
-router.get('/info', authMember, (req, res) => {
+router.get('/info', authMember, async(req, res) => {
     if (req.isMember === true) {
+        const [member] = await db.promise().query(`
+            SELECT member_name, member_email
+            FROM member
+            WHERE member_id = ${req.memberId};
+        `)
         res.status(200).send({
-            name: req.nickname,
-            email: req.email,
+            name: member[0].member_name,
+            email: member[0].member_eamil,
             message: "member info"
         });
     } else {
