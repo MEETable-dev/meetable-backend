@@ -17,8 +17,13 @@ function generateRandomString(length) {
 // 새 약속잡기(로그인 한 경우 유저 이름 제공)
 router.get('/username', authMember, async(req, res) => {
     if (req.isMember === true) {
+        const [member] = await db.promise().query(`
+            SELECT member_name
+            FROM member
+            WHERE member_id = ${req.memberId};
+        `)
         res.status(200).send({
-            name: req.nickname,
+            name: member[0].member_name,
             message: "user name provided"
         })
     } else {
