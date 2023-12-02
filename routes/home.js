@@ -80,7 +80,7 @@ router.get('/totalpromise', authMember, async(req, res) => {
             let promises;
             let bookmarked;
             bookmarked = await db.promise().query(`
-                SELECT p.promise_name, p.promise_id, p.promise_code, mj.is_bookmark, mj.last_bookmarked_at,
+                SELECT mj.member_promise_name, p.promise_id, p.promise_code, mj.is_bookmark, mj.last_bookmarked_at,
                 (SELECT COUNT(*) FROM memberjoin WHERE promise_id = p.promise_id) +
                 (SELECT COUNT(*) FROM nonmember WHERE promise_id = p.promise_id) AS participant_count
                 FROM folder f
@@ -92,7 +92,7 @@ router.get('/totalpromise', authMember, async(req, res) => {
             `)
             if (req.query.sortBy == "name") {
                 promises = await db.promise().query(`
-                    SELECT p.promise_name, p.promise_id, p.promise_code, mj.is_bookmark,
+                    SELECT mj.member_promise_name, p.promise_id, p.promise_code, mj.is_bookmark,
                     (SELECT COUNT(*) FROM memberjoin WHERE promise_id = p.promise_id) +
                     (SELECT COUNT(*) FROM nonmember WHERE promise_id = p.promise_id) AS participant_count
                     FROM folder f
@@ -104,7 +104,7 @@ router.get('/totalpromise', authMember, async(req, res) => {
                 `);
             } else if (req.query.sortBy == "id") {
                 promises = await db.promise().query(`
-                    SELECT p.promise_name, p.promise_id, p.promise_code, mj.is_bookmark,
+                    SELECT mj.member_promise_name, p.promise_id, p.promise_code, mj.is_bookmark,
                     (SELECT COUNT(*) FROM memberjoin WHERE promise_id = p.promise_id) +
                     (SELECT COUNT(*) FROM nonmember WHERE promise_id = p.promise_id) AS participant_count
                     FROM folder f
@@ -118,13 +118,13 @@ router.get('/totalpromise', authMember, async(req, res) => {
             if (bookmarked !== undefined && promises !== undefined) {
                 const bookmarkFormat = bookmarked[0].map(row => ({
                     count: row.participant_count,
-                    promiseName: row.promise_name,
+                    promiseName: row.member_promise_name,
                     promiseCode: row.promise_id + "_" + row.promise_code,
                     isBookmark: row.is_bookmark
                 }))
                 const promiseFormat = promises[0].map(row => ({
                     count: row.participant_count,
-                    promiseName: row.promise_name,
+                    promiseName: row.member_promise_name,
                     promiseCode: row.promise_id + "_" + row.promise_code,
                     isBookmark: row.is_bookmark
                 }));
@@ -137,7 +137,7 @@ router.get('/totalpromise', authMember, async(req, res) => {
             } else if (bookmarked === undefined && promises !== undefined) {
                 const promiseFormat = promises[0].map(row => ({
                     count: row.participant_count,
-                    promiseName: row.promise_name,
+                    promiseName: row.member_promise_name,
                     promiseCode: row.promise_id + "_" + row.promise_code,
                     isBookmark: row.is_bookmark
                 }));
@@ -229,7 +229,7 @@ router.get('/trash', authMember, async(req, res) => {
         try {
             if (req.query.sortBy == "name") {
                 trash = await db.promise().query(`
-                    SELECT p.promise_name, p.promise_id, p.promise_code,
+                    SELECT mj.member_promise_name, p.promise_id, p.promise_code,
                     (SELECT COUNT(*) FROM memberjoin WHERE promise_id = p.promise_id) +
                     (SELECT COUNT(*) FROM nonmember WHERE promise_id = p.promise_id) AS participant_count
                     FROM folder f
@@ -241,7 +241,7 @@ router.get('/trash', authMember, async(req, res) => {
                 `);
             } else if (req.query.sortBy == "id") {
                 trash = await db.promise().query(`
-                    SELECT p.promise_name, p.promise_id, p.promise_code,
+                    SELECT mj.member_promise_name, p.promise_id, p.promise_code,
                     (SELECT COUNT(*) FROM memberjoin WHERE promise_id = p.promise_id) +
                     (SELECT COUNT(*) FROM nonmember WHERE promise_id = p.promise_id) AS participant_count
                     FROM folder f
@@ -255,7 +255,7 @@ router.get('/trash', authMember, async(req, res) => {
             if (trash !== undefined) {
                 const trashFormat = trash[0].map(row => ({
                     count: row.participant_count,
-                    promiseName: row.promise_name,
+                    promiseName: row.member_promise_name,
                     promiseCode: row.promise_id + "_" + row.promise_code,
                 }));
                 res.status(200).send({
@@ -319,7 +319,7 @@ router.get('/search', authMember, async(req, res) => {
 
             // promise_name을 기반으로 검색
             const promises = await db.promise().query(`
-                SELECT p.promise_name, p.promise_id, p.promise_code, mj.is_bookmark
+                SELECT mj.member_promise_name, p.promise_id, p.promise_code, mj.is_bookmark
                 (SELECT COUNT(*) FROM memberjoin WHERE promise_id = p.promise_id) +
                 (SELECT COUNT(*) FROM nonmember WHERE promise_id = p.promise_id) AS participant_count
                 FROM folder f
@@ -333,7 +333,7 @@ router.get('/search', authMember, async(req, res) => {
             // 결과 포맷팅
             const formattedPromises = promises[0].map(row => ({
                 count: row.participant_count,
-                promiseName: row.promise_name,
+                promiseName: row.member_promise_name,
                 promiseCode: row.promise_id + "_" + row.promise_code,
                 isBookmark: row.is_bookmark
             }));
