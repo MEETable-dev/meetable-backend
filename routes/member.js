@@ -23,7 +23,7 @@ router.patch('/resetname', authMember, async(req, res) => {
         await db.promise().query(`
             UPDATE member 
             SET member_name = '${req.body.name}' 
-            WHERE member_email = ${req.email};
+            WHERE member_email = '${req.email}';
         `).then( () => {
             res.status(200).send({
                 nameUpdated: true,
