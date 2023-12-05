@@ -10,9 +10,10 @@ router.get('/info', authMember, async(req, res) => {
             FROM member
             WHERE member_id = ${req.memberId};
         `)
+        console.log(member[0])
         res.status(200).send({
             name: member[0].member_name,
-            email: member[0].member_eamil,
+            email: member[0].member_email,
             message: "member info"
         });
     } else {
@@ -48,7 +49,7 @@ router.delete('/quit', authMember, async(req, res) => {
         try {
             // 회원 존재 여부 확인
             const [memberExists] = await db.promise().query(`
-                SELECT member_id FROM member WHERE member_id = ${req.memberId};
+                SELECT member_id, member_name FROM member WHERE member_id = ${req.memberId};
             `);
 
             if (memberExists.length === 0) {
@@ -62,7 +63,7 @@ router.delete('/quit', authMember, async(req, res) => {
                 DELETE FROM member WHERE member_id = ${req.memberId};
             `);
             res.status(200).send({
-                name: req.nickname,
+                name: memberExists[0].member_name,
                 email: req.email,
                 message: "member deleted"
             });
