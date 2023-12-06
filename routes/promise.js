@@ -99,5 +99,6 @@ router.post('/create', authMember, async(req, res) => {
     }
 });
 
+// 약속 참여
 
 module.exports = router;

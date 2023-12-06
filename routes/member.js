@@ -10,7 +10,6 @@ router.get('/info', authMember, async(req, res) => {
             FROM member
             WHERE member_id = ${req.memberId};
         `)
-        console.log(member[0])
         res.status(200).send({
             name: member[0].member_name,
             email: member[0].member_email,
@@ -74,8 +73,6 @@ router.delete('/quit', authMember, async(req, res) => {
                 message: `Error deleting member: ${error.message}`
             });
         }
-        
-        
     } else {
         res.status(401).send({
             statusCode: 1000,
@@ -83,9 +80,5 @@ router.delete('/quit', authMember, async(req, res) => {
         });
     }
 });
-
-
-
-
 
 module.exports = router;

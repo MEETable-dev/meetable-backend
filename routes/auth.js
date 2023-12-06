@@ -267,7 +267,31 @@ router.patch('/resetpwd', authMember, async(req, res)=> {
             })
         })
     }
-    
-    
+});
+
+router.post('/verifypwd', authMember, async(req, res) => {
+    if (req.isMember === true) {
+        const [member] = await db.promise().query(`
+            SELECT member_pwd FROM member WHERE member_id = ${req.memberId}
+        `)
+        bcrypt.compare(req.body.pwd, member[0].member_pwd, (err, same) => {
+            if (same) {
+                res.status(200).send({
+                    isValidPwd: true,
+                    message: "valid pwd"
+                });
+            } else {
+                res.status(401).send({
+                    statusCode: 1001,
+                    message: "invalid password"
+                });
+            }
+        })
+    } else {
+        res.status(401).send({
+            statusCode: 1000,
+            message: "access denied."
+        });
+    }
 });
 module.exports = router;

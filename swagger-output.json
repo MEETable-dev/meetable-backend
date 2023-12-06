@@ -90,10 +90,9 @@
             "schema": {
               "type": "object",
               "properties": {
-                "pwd": {
-                  "example": "strung"
-                },
                 "email": {
+                  "example": "string"
+                },"pwd": {
                   "example": "string"
                 }
               }
@@ -348,6 +347,41 @@
             "bearerAuth": []
           }
         ]
+      }
+    },
+    "/auth/verifypwd": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "pwd": {
+                  "example": "string"
+                }
+              }
+            }
+          }
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
       }
     },
     "/promise/username": {
