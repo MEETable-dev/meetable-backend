@@ -232,66 +232,110 @@ router.get('/findEmail', async(req, res) => {
 });
 
 // 비밀번호 재설정 존재하는 이메일일 때만 실행가능
+// 회원일 경우 기존 pwd, 새 pwd 두 개 받아야함
 router.patch('/resetpwd', authMember, async(req, res)=> {
-    if (req.isMember === true) {
-        bcrypt.genSalt(saltRounds, (err, salt) => {
-            bcrypt.hash(req.body.pwd, salt, (err, encrypted) => {
-                db.promise().query(`
-                    UPDATE member SET member_pwd = '${encrypted}' WHERE member_email = '${req.email}'
-                `).then(() => {
-                    res.status(200).send({
-                        updatePWD: true,
-                        message: "successfully update pwd"
-                    })
-                })
-            })
-        })
-    } else {
-        const emailVerified = jwt.emailVerify(req.body.emailToken); 
-        if (emailVerified === false) {
-            return res.status(400).json({
-                statusCode: 1120,
-                message: "invalid email token, email token expired" 
-            })
-        }
-        bcrypt.genSalt(saltRounds, (err, salt) => {
-            bcrypt.hash(req.body.pwd, salt, (err, encrypted) => {
-                db.promise().query(`
-                    UPDATE member SET member_pwd = '${encrypted}' WHERE member_email = '${emailVerified}'
-                `).then(() => {
-                    res.status(200).send({
-                        updatePWD: true,
-                        message: "successfully update pwd"
-                    })
-                })
-            })
-        })
-    }
-});
-
-router.post('/verifypwd', authMember, async(req, res) => {
     if (req.isMember === true) {
         const [member] = await db.promise().query(`
             SELECT member_pwd FROM member WHERE member_id = ${req.memberId}
         `)
-        bcrypt.compare(req.body.pwd, member[0].member_pwd, (err, same) => {
-            if (same) {
-                res.status(200).send({
-                    isValidPwd: true,
-                    message: "valid pwd"
+        // 기존 비밀번호 맞는지 검증
+        const same = await bcrypt.compare(req.body.originalPwd, member[0].member_pwd);
+        if (same) {
+            // 새 비밀번호가 기존 비밀번호와 같은지 검증
+            const sameOriginNew = await bcrypt.compare(req.body.newPwd, member[0].member_pwd);
+            if (sameOriginNew) {
+                res.status(400).send({
+                    statusCode: 1002,
+                    message: "new password should be different from the original password"
                 });
             } else {
-                res.status(401).send({
-                    statusCode: 1001,
-                    message: "invalid password"
-                });
+                const salt = await bcrypt.genSalt(saltRounds);
+                const encrypted = await bcrypt.hash(req.body.newPwd, salt);
+                await db.promise().query(`
+                    UPDATE member SET member_pwd = '${encrypted}' WHERE member_id = ${req.memberId}
+                `).then(() => {
+                    res.status(200).send({
+                        updatePWD: true,
+                        message: "successfully update pwd"
+                    })
+                })
             }
-        })
+        } else {
+            res.status(401).send({
+                statusCode: 1001,
+                message: "invalid original password"
+            });
+        } 
     } else {
-        res.status(401).send({
-            statusCode: 1000,
-            message: "access denied."
-        });
+        const emailVerified = jwt.emailVerify(req.body.emailToken); 
+        if (emailVerified === false) {
+            return res.status(401).json({
+                statusCode: 1120,
+                message: "invalid email token, email token expired" 
+            })
+        } else {
+            const [member] = await db.promise().query(`
+                SELECT member_pwd FROM member WHERE member_email = '${emailVerified.email}'
+            `)
+            if (member.length == 0) {
+                res.status(404).send({
+                    statusCode: 404, 
+                    message: "member not found" 
+                })
+            } else {
+                const sameOriginNew = await bcrypt.compare(req.body.newPwd, member[0].member_pwd);
+                if (sameOriginNew) {
+                    res.status(400).send({
+                        statusCode: 1002,
+                        message: "new password should be different from the original password"
+                    });
+                } else {
+                    const salt = await bcrypt.genSalt(saltRounds);
+                    const encrypted = await bcrypt.hash(req.body.newPwd, salt);
+                    try {
+                        await db.promise().query(`
+                        UPDATE member SET member_pwd = '${encrypted}' WHERE member_email = '${emailVerified.email}'
+                    `).then(() => {
+                        res.status(200).send({
+                            updatePWD: true,
+                            message: "successfully update pwd"
+                        });
+                    });
+                    } catch (err) {
+                        console.log(err)
+                    }
+                
+                }
+            }
+            
+            
+        }
     }
 });
+
+// router.post('/verifypwd', authMember, async(req, res) => {
+//     if (req.isMember === true) {
+//         const [member] = await db.promise().query(`
+//             SELECT member_pwd FROM member WHERE member_id = ${req.memberId}
+//         `)
+//         bcrypt.compare(req.body.pwd, member[0].member_pwd, (err, same) => {
+//             if (same) {
+//                 res.status(200).send({
+//                     isValidPwd: true,
+//                     message: "valid pwd"
+//                 });
+//             } else {
+//                 res.status(401).send({
+//                     statusCode: 1001,
+//                     message: "invalid password"
+//                 });
+//             }
+//         })
+//     } else {
+//         res.status(401).send({
+//             statusCode: 1000,
+//             message: "access denied."
+//         });
+//     }
+// });
 module.exports = router;

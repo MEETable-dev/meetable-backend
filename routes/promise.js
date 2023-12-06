@@ -3,7 +3,6 @@ const router = express.Router();
 const db = require('../db');
 const authMember = require('../middlewares/authmember');
 
-// 
 function generateRandomString(length) {
     let result = '';
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -100,5 +99,7 @@ router.post('/create', authMember, async(req, res) => {
 });
 
 // 약속 참여
+
+
 
 module.exports = router;
