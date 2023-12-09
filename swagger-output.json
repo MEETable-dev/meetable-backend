@@ -126,7 +126,7 @@
               "type": "object",
               "properties": {
                 "name": {
-                  "example": "strung"
+                  "example": "string"
                 },
                 "emailToken": {
                   "example": "string"
@@ -427,6 +427,47 @@
           },
           "401": {
             "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/promise/participate": {
+      "post": {
+        "tags": [
+          "promise"
+        ],
+        "description": "회원일 경우 password는 not required",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "promiseId": {
+                  "example": "string(숫자만 parsing)"
+                },
+                "nickname": {
+                  "example": "string"
+                },
+                "password": {
+                  "example": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
           }
         },
         "security": [
