@@ -176,20 +176,41 @@ router.patch('/deletepromise', authMember, async(req, res) => {
         try {
             const promiseId = req.body.promiseId;
             const memberId = req.memberId;
-
+            
+            // 'meetable' 폴더에 promise_id가 존재하는지 확인
+            const [meetableExists] = await db.promise().query(`
+                SELECT fp.promise_id FROM folder f
+                JOIN folder_promise fp ON f.folder_id = fp.folder_id
+                WHERE f.member_id = ${memberId} AND f.folder_name = 'meetable' AND fp.promise_id = ${promiseId}
+            `);
+            
+            if (meetableExists.length === 0) {
+                return res.status(404).send({
+                    statusCode: 4044,
+                    message: "participated promise not found"
+                });
+            }
+            
             // 사용자의 'trash' 폴더 ID 찾기
             const [findFolderResult] = await db.promise().query(`
                 SELECT folder_id FROM folder 
                 WHERE member_id = ${memberId} AND folder_name = 'trash'
             `);
 
+             // 사용자의 'meetable' 폴더 ID 찾기
+             const [findMeetable] = await db.promise().query(`
+                SELECT folder_id FROM folder 
+                WHERE member_id = ${memberId} AND folder_name = 'meetable'
+            `);
+
             const trashFolderId = findFolderResult[0].folder_id;
+            const meetableFolderId = findMeetable[0].folder_id;
             
             // 약속을 'trash' 폴더로 옮기기
             await db.promise().query(`
                 UPDATE folder_promise
                 SET folder_id = ${trashFolderId}
-                WHERE promise_id = ${promiseId}
+                WHERE promise_id = ${promiseId} AND folder_id = ${meetableFolderId}
             `);
 
             await db.promise().query(`
@@ -212,7 +233,7 @@ router.patch('/deletepromise', authMember, async(req, res) => {
     } else {
         res.status(401).send({
             statusCode: 1000,
-            message: "Access denied."
+            message: "access denied."
         });
     }
 });
@@ -355,6 +376,67 @@ router.get('/search', authMember, async(req, res) => {
     }
 });
 
+router.patch('/restore', authMember, async(req, res) => {
+    const isMember = req.isMember;
+    if (isMember) {
+        try {
+            const promiseId = req.body.promiseId;
+            const memberId = req.memberId;
+
+             // 'meetable' 폴더에 promise_id가 존재하는지 확인
+             const [meetableExists] = await db.promise().query(`
+                SELECT fp.promise_id FROM folder f
+                JOIN folder_promise fp ON f.folder_id = fp.folder_id
+                WHERE f.member_id = ${memberId} AND f.folder_name = 'meetable' AND fp.promise_id = ${promiseId}
+            `);
+         
+            if (meetableExists.length === 0) {
+                 return res.status(404).send({
+                    statusCode: 4044,
+                    message: "promise not found on trash"
+                });
+            }
+            // 사용자의 'trash' 폴더 ID 찾기
+            const [findFolderResult] = await db.promise().query(`
+                SELECT folder_id FROM folder 
+                WHERE member_id = ${memberId} AND folder_name = 'trash'
+            `);
+
+             // 사용자의 'meetable' 폴더 ID 찾기
+             const [findMeetable] = await db.promise().query(`
+                SELECT folder_id FROM folder 
+                WHERE member_id = ${memberId} AND folder_name = 'meetable'
+            `);
+
+            const trashFolderId = findFolderResult[0].folder_id;
+            const meetableFolderId = findMeetable[0].folder_id;
+
+            
+            // 약속을 'trash' 폴더로 옮기기
+            await db.promise().query(`
+                UPDATE folder_promise
+                SET folder_id = ${meetableFolderId}
+                WHERE promise_id = ${promiseId} AND folder_id = ${trashFolderId}
+            `);
+            res.status(200).send({
+                restored: true,
+                message: "Promise restored successfully"
+            });
+        } catch (error) {
+            console.log(error);
+            res.status(500).send({
+                statusCode: 1234,
+                message: `Error moving promise restoring: ${error.message}`
+            });
+        }
+    } else {
+        res.status(401).send({
+            statusCode: 1000,
+            message: "access denied."
+        });
+    }
+});
+
 // 약속에서 빠지기
 router.delete('/backoutpromise', authMember, async(req, res) => {
     const promiseId = req.body.promiseId;
@@ -389,7 +471,7 @@ router.delete('/backoutpromise', authMember, async(req, res) => {
                 (SELECT COUNT(*) FROM nonmember WHERE promise_id = ${promiseId}) AS count
         `);
 
-        if (participants[0].count === 1) {
+        if (participants[0].count == 0) {
             // 참여자가 1명이면 promise 삭제
             await db.promise().query(`
                 DELETE FROM promise WHERE promise_id = ${promiseId};
@@ -409,7 +491,58 @@ router.delete('/backoutpromise', authMember, async(req, res) => {
 
 // 휴지통 비우기 return으로 삭제된 약속 이름, 코드 보내자
 router.delete('/backoutall', authMember, async(req, res) => {
+    const isMember = req.isMember; // 회원 여부
+    try {
+        if (isMember) {
+            const memberId = req.memberId; // 회원 ID
+            const [trashPromises] = await db.promise().query(`
+                SELECT p.promise_id, p.promise_name, p.promise_code
+                FROM folder f
+                JOIN folder_promise fp ON f.folder_id = fp.folder_id
+                JOIN promise p ON fp.promise_id = p.promise_id
+                WHERE f.member_id = ${memberId} AND f.folder_name = 'trash'
+            `)
 
+            let deletedPromises = [];
+
+            for (let promise of trashPromises) {
+                // 약속에서 빠지기
+                await db.promise().query(`
+                    DELETE FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promise.promise_id};
+                `);
+
+                // 약속의 전체 참여자 수 확인
+                const [participants] = await db.promise().query(`
+                    SELECT 
+                        (SELECT COUNT(*) FROM memberjoin WHERE promise_id = ${promise.promise_id}) +
+                        (SELECT COUNT(*) FROM nonmember WHERE promise_id = ${promise.promise_id}) AS count
+                `);
+
+                // 참여자가 1명 이하인 경우, 해당 약속 삭제
+                if (participants[0].count == 0) {
+                    await db.promise().query(`
+                        DELETE FROM promise WHERE promise_id = ${promise.promise_id};
+                    `);
+                    // 삭제된 약속 정보 기록
+                    deletedPromises.push({ promiseName: promise.promise_name, promiseCode: promise.promise_id + '_' + promise.promise_code });
+                }
+            }
+            res.status(200).send({
+                message: "successfully emptied the trash",
+                deletedPromises: deletedPromises
+            });
+        } else {
+            res.status(401).send({
+                statusCode: 1000,
+                message: "access denied."
+            });
+        }
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({
+            message: `Error during emptying trashcan: ${error.message}`
+        });
+    }
 });
 
 // 폴더 삭제
