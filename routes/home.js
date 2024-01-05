@@ -383,11 +383,11 @@ router.patch('/restore', authMember, async(req, res) => {
             const promiseId = req.body.promiseId;
             const memberId = req.memberId;
 
-             // 'meetable' 폴더에 promise_id가 존재하는지 확인
+             // 'trash' 폴더에 promise_id가 존재하는지 확인
              const [meetableExists] = await db.promise().query(`
                 SELECT fp.promise_id FROM folder f
                 JOIN folder_promise fp ON f.folder_id = fp.folder_id
-                WHERE f.member_id = ${memberId} AND f.folder_name = 'meetable' AND fp.promise_id = ${promiseId}
+                WHERE f.member_id = ${memberId} AND f.folder_name = 'trash' AND fp.promise_id = ${promiseId}
             `);
          
             if (meetableExists.length === 0) {
