@@ -214,6 +214,9 @@
               "properties": {
                 "email": {
                   "example": "string"
+                },
+                "findPwdOrSignup": {
+                  "example": "P or S"
                 }
               }
             }

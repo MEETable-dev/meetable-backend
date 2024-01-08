@@ -152,13 +152,26 @@ router.post('/sendVerifyCode', async(req, res) => {
             pass: process.env.NODEMAILER_PASS,
         },
     });
-
     const mailOptions = {
         from: `MEETable`,
         to: req.body.email,
         subject: '[MEETable] 회원가입을 위한 인증번호 안내',
         html: emailTemplete,
     };
+    const [member] = await db.promise().query(`
+        SELECT member_id FROM member WHERE member_email = '${req.body.email}'
+    `)
+    if (member.length != 0 && req.body.findPwdOrSignup == "S") { // 이미 가입된 이메일이고 회원가입 화면인 경우
+        return res.status(400).json({
+            statusCode: 2400,
+            message: "want to singup with this email but email already exists"
+        });
+    } else if (member.length == 0 && req.body.findPwdOrSignup == "P") {
+        return res.status(404).json({
+            statusCode: 2404,
+            message: "want to find pwd of this email but no member found"
+        })
+    }
     transporter.sendMail(mailOptions, function (error, info) {
         if (error) {
             return res.status(500).json({

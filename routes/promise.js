@@ -187,6 +187,17 @@ router.post('/participate', authMember, async(req, res) => {
         
 });
 
+// todo: 약속 세부 정보 저장하기/불러오기/수정하기(삭제)
+// 약속 세부 정보 저장하기
+// 회원, 비회원 나누고 요일 기준 날짜기준 시간 유무로 나눠서 처리
+// 요일 기준
+router.post('/time', authMember, async(req, res) => {
+    if (req.isMember) {
+
+    } else {
+
+    }
+});
 
 
 module.exports = router;
