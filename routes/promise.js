@@ -192,12 +192,232 @@ router.post('/participate', authMember, async(req, res) => {
 // 회원, 비회원 나누고 요일 기준 날짜기준 시간 유무로 나눠서 처리
 // 요일 기준
 router.post('/time', authMember, async(req, res) => {
-    if (req.isMember) {
-
-    } else {
-
+    const isMember = req.isMember;
+    const promiseId = req.body.promiseId;
+    const memberId = req.isMember ? req.memberId : req.nonmemberId;
+    const tableName = req.isMember ? 'membertime' : 'nonmembertime';
+    let status;
+    try {
+        // promise 테이블에서 weekvsdate, ampmvstime 값 가져오기
+        const [promiseSettings] = await db.promise().query(`
+            SELECT weekvsdate, ampmvstime, start_time, end_time 
+            FROM promise WHERE promise_id = ${promiseId};
+        `);
+        const { weekvsdate, ampmvstime } = promiseSettings[0];
+        if (weekvsdate === 'W' && ampmvstime === 'F') {
+            // 1. 가능한 요일만 저장
+            status = await saveWeekAvailable(req.body.weekAvailable, memberId, promiseId, tableName, isMember);
+        } else if (weekvsdate === 'D' && ampmvstime === 'F') {
+            // 2. 가능한 날짜만 저장
+            status = await saveDateAvailable(req.body.dateAvailable, memberId, promiseId, tableName, isMember);
+        } else if (weekvsdate === 'W' && ampmvstime === 'T') {
+            // 3. 가능한 요일과 시간 저장
+            status = await saveWeekTimeAvailable(req.body.weektimeAvailable, memberId, promiseId, tableName, promiseSettings[0], isMember);
+        } else if (weekvsdate === 'D' && ampmvstime === 'T') {
+            // 4. 가능한 날짜와 시간 저장
+            status = await saveDateTimeAvailable(req.body.datetimeAvailable, memberId, promiseId, tableName, promiseSettings[0], isMember);
+        }
+        if (status == 200) {
+            res.status(200).send({
+                message: "time saved successfully"
+            });
+        } else if (status == 1750) {
+            res.status(400).send({
+                statusCode: 1750,
+                message: "wrong weekday string"
+            })
+        } else if (status == 1751) {
+            res.status(400).send({
+                statusCode: 1751,
+                message: "date out of range of promise"
+            })
+        } else if (status == 1752) {
+            return res.status(400).json({
+                statusCode: 1752,
+                message: "wrong time id"
+            })
+        } else if (status == 1753) {
+            return res.status(400).json({
+                statusCode: 1753,
+                message: "wrong time range"
+            })
+        }
+        
+    } catch (error) {
+        console.log(error);
+        res.status(500).send({
+            message: `Error saving time: ${error.message}`
+        });
     }
 });
 
+async function saveWeekAvailable(weekAvailable, memberId, promiseId, tableName, isMember) {
+    // 가능한 요일 데이터 저장
+    let statusCode = 200
+    const correctString = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+    for (let weekday of weekAvailable) {
+        if (correctString.includes(weekday)) {
+            if (isMember) {
+                await db.promise().query(`
+                    INSERT INTO ${tableName} (memberjoin_id, week_available)
+                    VALUES(
+                        (SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}),
+                        '${weekday}'
+                    )
+                `); 
+            } else if (isMember === false) {
+                await db.promise().query(`
+                    INSERT INTO ${tableName} (nonmember_id, week_available)
+                    VALUES(${memberId},'${weekday}')
+                `); 
+            }
+        } else {
+            statusCode = 1750;
+        }
+    }
+    return statusCode;
+}
+
+async function saveDateAvailable(dateAvailable, memberId, promiseId, tableName, isMember) {
+    // 해당 promise_id에 해당하는 datetomeet 값 가져오기
+    const [validDates] = await db.promise().query(`
+        SELECT datetomeet FROM promisedate WHERE promise_id = ${promiseId}
+    `);
+    const validDatesArray = validDates.map(item => {
+        const date = new Date(item.datetomeet);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0'); // getMonth()는 0부터 시작하므로 1을 더함
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    });
+    let statusCode = 200;
+    for (let date of dateAvailable) {
+        // 주어진 날짜가 유효한 날짜 배열에 있는지 확인
+        if (validDatesArray.includes(date)) {
+            if (isMember) {
+                await db.promise().query(`
+                    INSERT INTO ${tableName} (memberjoin_id, date_available)
+                    VALUES (
+                        (SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}),
+                        '${date}'
+                    )
+                `);
+            } else if (isMember === false) {
+                await db.promise().query(`
+                    INSERT INTO ${tableName} (nonmember_id, date_available)
+                    VALUES (${memberId}, '${date}')
+                `);
+            }
+        } else {
+            statusCode = 1751;
+        }
+    }
+    return statusCode;
+}
+
+async function saveWeekTimeAvailable(weektimeAvailable, memberId, promiseId, tableName, promiseSettings, isMember) {
+    const { start_time, end_time } = promiseSettings;
+    const correctString = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+    let statusCode = 200;
+    for (let weekdaytime of weektimeAvailable) {
+        // 요일, 시작 시간, 종료 시간 파싱
+        const [weekday, startTime, endTime] = weekdaytime.split(' ');
+        if (correctString.includes(weekday)) { 
+            // 시간이 유효한 범위 내에 있는지 확인
+            if (startTime >= start_time && endTime <= end_time) {
+                // timeslot 테이블에서 해당 시간에 대한 time_id 찾기
+                const [timeSlot] = await db.promise().query(`
+                    SELECT id FROM timeslot 
+                    WHERE start_time = '${startTime}' AND end_time = '${endTime}'
+                `);
+
+                const timeId = timeSlot[0]?.id;
+
+                if (timeId) {
+                    if (isMember) {
+                        await db.promise().query(`
+                            INSERT INTO ${tableName} (memberjoin_id, week_available, time_id)
+                            VALUES(
+                                (SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}),
+                                '${weekday}', 
+                                ${timeId}
+                            )
+                        `);
+                    } else if (isMember === false) {
+                        await db.promise().query(`
+                            INSERT INTO ${tableName} (nonmember_id, week_available, time_id)
+                            VALUES(${memberId},'${weekday}', ${timeId})
+                        `); 
+                    }
+                } else {
+                    statusCode = 1752;
+                }
+            } else {
+                statusCode = 1753;
+            }
+        
+        } else {
+            statusCode = 1750;
+        }
+    }
+    return statusCode;
+}
+
+async function saveDateTimeAvailable(datetimeAvailable, memberId, promiseId, tableName, promiseSettings, isMember) {
+    const { start_time, end_time } = promiseSettings;
+
+    const [validDates] = await db.promise().query(`
+        SELECT datetomeet FROM promisedate WHERE promise_id = ${promiseId}
+    `);
+    const validDatesArray = validDates.map(item => {
+        const date = new Date(item.datetomeet);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0'); // getMonth()는 0부터 시작하므로 1을 더함
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    });
+    let statusCode = 200;
+
+    for (let datetime of datetimeAvailable) {
+        const [date, startTime, endTime] = datetime.split(' ');
+        if (validDatesArray.includes(date)) {
+            // 시간이 유효한 범위 내에 있는지 확인
+            if (startTime >= start_time && endTime <= end_time) {
+                // timeslot 테이블에서 해당 시간에 대한 time_id 찾기
+                const [timeSlot] = await db.promise().query(`
+                    SELECT id FROM timeslot 
+                    WHERE start_time = '${startTime}' AND end_time = '${endTime}'
+                `);
+
+                const timeId = timeSlot[0]?.id;
+
+                if (timeId) {
+                    if (isMember) {
+                        await db.promise().query(`
+                            INSERT INTO ${tableName} (memberjoin_id, date_available, time_id)
+                            VALUES(
+                                (SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}),
+                                '${date}', 
+                                ${timeId}
+                            )
+                        `);
+                    } else if (isMember === false) {
+                        await db.promise().query(`
+                            INSERT INTO ${tableName} (nonmember_id, date_available, time_id)
+                            VALUES(${memberId},'${date}', ${timeId})
+                        `); 
+                    }
+                } else {
+                    statusCode = 1752;
+                }
+            } else {
+                statusCode = 1753;
+            }
+        } else {
+            statusCode = 1751;
+        }
+    }
+    return statusCode;
+}
 
 module.exports = router;
