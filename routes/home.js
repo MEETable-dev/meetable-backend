@@ -442,8 +442,8 @@ router.delete('/backoutpromise', authMember, async(req, res) => {
     const promiseId = req.body.promiseId;
     const isMember = req.isMember; // 회원 여부
 
-    if (promiseId===undefined) {
-        return res.status(400).send({
+    if (promiseId === undefined) {
+        res.status(400).send({
             statusCode: 1024,
             message: "required body missed: promiseId"
         });
