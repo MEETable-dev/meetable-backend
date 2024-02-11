@@ -1,7 +1,7 @@
 const { verify } = require('../utils/jwt-util');
 
 const authMember = (req, res, next) => {
-    if (req.headers === undefined) {
+    if (req.headers.authorization === undefined) {
         res.status(400).send({
             statusCode: 1200,
             message: "no header",

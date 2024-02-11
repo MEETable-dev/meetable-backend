@@ -82,6 +82,7 @@ router.post('/create', authMember, async(req, res) => {
             SELECT folder_id FROM folder
             WHERE folder_name = 'meetable' AND member_id = ${req.memberId}
         `)
+        console.log(resultFolder[0])
         await db.promise().query(`
             INSERT INTO FOLDER_PROMISE(folder_id, promise_id)
             VALUES (${resultFolder[0].folder_id}, ${promiseId})
@@ -187,10 +188,13 @@ router.post('/participate', authMember, async(req, res) => {
         
 });
 
+// 0210 todo: 중복으로 들어온 요청에 대한 예외처리(들어온 요청에 해당하는 날짜/시간이 존재하는지 확인)
+// time -> 존재하면 중복 오류 / deletetime -> 존재하지 않으면 오류
 // todo: 약속 세부 정보 저장하기/불러오기/수정하기(삭제)
 // 약속 세부 정보 저장하기
 // 회원, 비회원 나누고 요일 기준 날짜기준 시간 유무로 나눠서 처리
 // 요일 기준
+// 약속세부 저장하기
 router.post('/time', authMember, async(req, res) => {
     const isMember = req.isMember;
     const promiseId = req.body.promiseId;
@@ -232,16 +236,36 @@ router.post('/time', authMember, async(req, res) => {
                 message: "date out of range of promise"
             })
         } else if (status == 1752) {
-            return res.status(400).json({
+            res.status(400).send({
                 statusCode: 1752,
                 message: "wrong time id"
             })
         } else if (status == 1753) {
-            return res.status(400).json({
+            res.status(400).send({
                 statusCode: 1753,
                 message: "wrong time range"
             })
-        }
+        } else if (status == 1749) {
+            res.status(400).send({
+                statusCode: 1749,
+                message: "try to insert duplicate week"
+            })
+        } else if (status == 1748) {
+            res.status(400).send({
+                statusCode: 1748,
+                message: "try to insert duplicate date"
+            })
+        } else if (status == 1747) {
+            res.status(400).send({
+                statusCode: 1747,
+                message: "try to insert duplicate weektime"
+            })
+        } else if (status == 1746) {
+            res.status(400).send({
+                statusCode: 1746,
+                message: "try to insert duplicate datetime"
+            })
+        } 
         
     } catch (error) {
         console.log(error);
@@ -255,21 +279,43 @@ async function saveWeekAvailable(weekAvailable, memberId, promiseId, tableName, 
     // 가능한 요일 데이터 저장
     let statusCode = 200
     const correctString = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+    let existingWeeksQuery = "";
+
+    if (isMember) {
+        existingWeeksQuery = `
+            SELECT week_available FROM ${tableName}
+            WHERE memberjoin_id = (
+                SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}
+            )
+        `;
+    } else if (isMember === false) {
+        existingWeeksQuery = `
+            SELECT week_available FROM ${tableName}
+            WHERE nonmember_id = ${memberId}
+        `
+    }
+    const [existingWeeks] = await db.promise().query(existingWeeksQuery);
+    const existingWeeksArray = existingWeeks.map(item => item.week_available);
+
     for (let weekday of weekAvailable) {
         if (correctString.includes(weekday)) {
-            if (isMember) {
-                await db.promise().query(`
-                    INSERT INTO ${tableName} (memberjoin_id, week_available)
-                    VALUES(
-                        (SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}),
-                        '${weekday}'
-                    )
-                `); 
-            } else if (isMember === false) {
-                await db.promise().query(`
-                    INSERT INTO ${tableName} (nonmember_id, week_available)
-                    VALUES(${memberId},'${weekday}')
-                `); 
+            if (!existingWeeksArray.includes(weekday)) {
+                if (isMember) {
+                    await db.promise().query(`
+                        INSERT INTO ${tableName} (memberjoin_id, week_available)
+                        VALUES(
+                            (SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}),
+                            '${weekday}'
+                        )
+                    `); 
+                } else if (isMember === false) {
+                    await db.promise().query(`
+                        INSERT INTO ${tableName} (nonmember_id, week_available)
+                        VALUES(${memberId},'${weekday}')
+                    `); 
+                }
+            } else {
+                statusCode = 1749;
             }
         } else {
             statusCode = 1750;
@@ -290,23 +336,46 @@ async function saveDateAvailable(dateAvailable, memberId, promiseId, tableName, 
         const day = String(date.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     });
+
+    let existingDatesQuery = "";
+
+    if (isMember) {
+        existingDatesQuery = `
+            SELECT date_available FROM ${tableName}
+            WHERE memberjoin_id = (
+                SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}
+            )
+        `;
+    } else if (isMember === false) {
+        existingDatesQuery = `
+            SELECT date_available FROM ${tableName}
+            WHERE nonmember_id = ${memberId}
+        `
+    }
+    const [existingDates] = await db.promise().query(existingDatesQuery);
+    const existingDatesArray = existingDates.map(item => item.date_available);
+
     let statusCode = 200;
     for (let date of dateAvailable) {
         // 주어진 날짜가 유효한 날짜 배열에 있는지 확인
         if (validDatesArray.includes(date)) {
-            if (isMember) {
-                await db.promise().query(`
-                    INSERT INTO ${tableName} (memberjoin_id, date_available)
-                    VALUES (
-                        (SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}),
-                        '${date}'
-                    )
-                `);
-            } else if (isMember === false) {
-                await db.promise().query(`
-                    INSERT INTO ${tableName} (nonmember_id, date_available)
-                    VALUES (${memberId}, '${date}')
-                `);
+            if (!existingDatesArray.includes(date)) {
+                if (isMember) {
+                    await db.promise().query(`
+                        INSERT INTO ${tableName} (memberjoin_id, date_available)
+                        VALUES (
+                            (SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}),
+                            '${date}'
+                        )
+                    `);
+                } else if (isMember === false) {
+                    await db.promise().query(`
+                        INSERT INTO ${tableName} (nonmember_id, date_available)
+                        VALUES (${memberId}, '${date}')
+                    `);
+                }
+            } else {
+                statusCode = 1748
             }
         } else {
             statusCode = 1751;
@@ -319,45 +388,72 @@ async function saveWeekTimeAvailable(weektimeAvailable, memberId, promiseId, tab
     const { start_time, end_time } = promiseSettings;
     const correctString = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
     let statusCode = 200;
+    let existingWeektimesQuery = "";
+
+    if (isMember) {
+        existingWeektimesQuery = `
+            SELECT CONCAT(week_available, ' ', start_time, ' ', end_time) AS weektime
+            FROM ${tableName}
+            JOIN timeslot ON ${tableName}.time_id = timeslot.id
+            WHERE memberjoin_id = (
+                SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}
+            )
+        `;
+    } else if (isMember === false) {
+        existingWeektimesQuery = `
+            SELECT CONCAT(week_available, ' ', start_time, ' ', end_time) AS weektime
+            FROM ${tableName}
+            JOIN timeslot ON ${tableName}.time_id = timeslot.id
+            WHERE nonmember_id = ${memberId}
+        `
+    }
+    const [existingWeektimes] = await db.promise().query(existingWeektimesQuery);
+    const existingWeektimesArray = existingWeektimes.map(item => item.weektime);
+
+
     for (let weekdaytime of weektimeAvailable) {
         // 요일, 시작 시간, 종료 시간 파싱
         const [weekday, startTime, endTime] = weekdaytime.split(' ');
-        if (correctString.includes(weekday)) { 
-            // 시간이 유효한 범위 내에 있는지 확인
-            if (startTime >= start_time && endTime <= end_time) {
-                // timeslot 테이블에서 해당 시간에 대한 time_id 찾기
-                const [timeSlot] = await db.promise().query(`
-                    SELECT id FROM timeslot 
-                    WHERE start_time = '${startTime}' AND end_time = '${endTime}'
-                `);
-
-                const timeId = timeSlot[0]?.id;
-
-                if (timeId) {
-                    if (isMember) {
-                        await db.promise().query(`
-                            INSERT INTO ${tableName} (memberjoin_id, week_available, time_id)
-                            VALUES(
-                                (SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}),
-                                '${weekday}', 
-                                ${timeId}
-                            )
-                        `);
-                    } else if (isMember === false) {
-                        await db.promise().query(`
-                            INSERT INTO ${tableName} (nonmember_id, week_available, time_id)
-                            VALUES(${memberId},'${weekday}', ${timeId})
-                        `); 
+        if (!existingWeektimesArray.includes(weekdaytime)) {
+            if (correctString.includes(weekday)) { 
+                // 시간이 유효한 범위 내에 있는지 확인
+                if (startTime >= start_time && endTime <= end_time) {
+                    // timeslot 테이블에서 해당 시간에 대한 time_id 찾기
+                    const [timeSlot] = await db.promise().query(`
+                        SELECT id FROM timeslot 
+                        WHERE start_time = '${startTime}' AND end_time = '${endTime}'
+                    `);
+    
+                    const timeId = timeSlot[0]?.id;
+    
+                    if (timeId) {
+                        if (isMember) {
+                            await db.promise().query(`
+                                INSERT INTO ${tableName} (memberjoin_id, week_available, time_id)
+                                VALUES(
+                                    (SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}),
+                                    '${weekday}', 
+                                    ${timeId}
+                                )
+                            `);
+                        } else if (isMember === false) {
+                            await db.promise().query(`
+                                INSERT INTO ${tableName} (nonmember_id, week_available, time_id)
+                                VALUES(${memberId},'${weekday}', ${timeId})
+                            `); 
+                        }
+                    } else {
+                        statusCode = 1752;
                     }
                 } else {
-                    statusCode = 1752;
+                    statusCode = 1753;
                 }
+            
             } else {
-                statusCode = 1753;
+                statusCode = 1750;
             }
-        
         } else {
-            statusCode = 1750;
+            statusCode = 1747;
         }
     }
     return statusCode;
@@ -377,47 +473,500 @@ async function saveDateTimeAvailable(datetimeAvailable, memberId, promiseId, tab
         return `${year}-${month}-${day}`;
     });
     let statusCode = 200;
+    let existingDatetimesQuery = "";
+
+    if (isMember) {
+        existingDatetimesQuery = `
+            SELECT CONCAT(date_available, ' ', start_time, ' ', end_time) AS datetime
+            FROM ${tableName}
+            JOIN timeslot ON ${tableName}.time_id = timeslot.id
+            WHERE memberjoin_id = (
+                SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}
+            )
+        `;
+    } else if (isMember === false) {
+        existingDatetimesQuery = `
+            SELECT CONCAT(date_available, ' ', start_time, ' ', end_time) AS datetime
+            FROM ${tableName}
+            JOIN timeslot ON ${tableName}.time_id = timeslot.id
+            WHERE nonmember_id = ${memberId}
+        `
+    }
+    const [existingDatetimes] = await db.promise().query(existingDatetimesQuery);
+    const existingDatetimesArray = existingDatetimes.map(item => item.datetime);
 
     for (let datetime of datetimeAvailable) {
         const [date, startTime, endTime] = datetime.split(' ');
-        if (validDatesArray.includes(date)) {
-            // 시간이 유효한 범위 내에 있는지 확인
-            if (startTime >= start_time && endTime <= end_time) {
-                // timeslot 테이블에서 해당 시간에 대한 time_id 찾기
-                const [timeSlot] = await db.promise().query(`
-                    SELECT id FROM timeslot 
-                    WHERE start_time = '${startTime}' AND end_time = '${endTime}'
-                `);
-
-                const timeId = timeSlot[0]?.id;
-
-                if (timeId) {
-                    if (isMember) {
-                        await db.promise().query(`
-                            INSERT INTO ${tableName} (memberjoin_id, date_available, time_id)
-                            VALUES(
-                                (SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}),
-                                '${date}', 
-                                ${timeId}
-                            )
-                        `);
-                    } else if (isMember === false) {
-                        await db.promise().query(`
-                            INSERT INTO ${tableName} (nonmember_id, date_available, time_id)
-                            VALUES(${memberId},'${date}', ${timeId})
-                        `); 
+        if (!existingDatetimesArray.includes(datetime)) {
+            if (validDatesArray.includes(date)) {
+                // 시간이 유효한 범위 내에 있는지 확인
+                if (startTime >= start_time && endTime <= end_time) {
+                    // timeslot 테이블에서 해당 시간에 대한 time_id 찾기
+                    const [timeSlot] = await db.promise().query(`
+                        SELECT id FROM timeslot 
+                        WHERE start_time = '${startTime}' AND end_time = '${endTime}'
+                    `);
+    
+                    const timeId = timeSlot[0]?.id;
+    
+                    if (timeId) {
+                        if (isMember) {
+                            await db.promise().query(`
+                                INSERT INTO ${tableName} (memberjoin_id, date_available, time_id)
+                                VALUES(
+                                    (SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}),
+                                    '${date}', 
+                                    ${timeId}
+                                )
+                            `);
+                        } else if (isMember === false) {
+                            await db.promise().query(`
+                                INSERT INTO ${tableName} (nonmember_id, date_available, time_id)
+                                VALUES(${memberId},'${date}', ${timeId})
+                            `); 
+                        }
+                    } else {
+                        statusCode = 1752;
                     }
                 } else {
-                    statusCode = 1752;
+                    statusCode = 1753;
                 }
             } else {
-                statusCode = 1753;
+                statusCode = 1751;
             }
         } else {
-            statusCode = 1751;
+            statusCode = 1746
         }
     }
     return statusCode;
 }
+
+// 약속세부 삭제하기
+// todo: sql 삭제하는 로직으로 변경 및 삭제 시 존재하는 데이터인지 검증하는 로직 추가 
+router.delete('/deletetime', authMember, async(req, res) => {
+    const isMember = req.isMember;
+    const promiseId = req.body.promiseId;
+    const memberId = req.isMember ? req.memberId : req.nonmemberId;
+    const tableName = req.isMember ? 'membertime' : 'nonmembertime';
+    let status;
+        // promise 테이블에서 weekvsdate, ampmvstime 값 가져오기
+        const [promiseSettings] = await db.promise().query(`
+            SELECT weekvsdate, ampmvstime, start_time, end_time 
+            FROM promise WHERE promise_id = ${promiseId};
+        `);
+        const { weekvsdate, ampmvstime } = promiseSettings[0];
+        if (weekvsdate === 'W' && ampmvstime === 'F') {
+            // 1. 가능한 요일만 삭제
+            status = await deleteWeekAvailable(req.body.weekToDelete, memberId, promiseId, tableName, isMember);
+        } else if (weekvsdate === 'D' && ampmvstime === 'F') {
+            // 2. 가능한 날짜만 삭제
+            status = await deleteDateAvailable(req.body.dateToDelete, memberId, promiseId, tableName, isMember);
+        } else if (weekvsdate === 'W' && ampmvstime === 'T') {
+            // 3. 가능한 요일과 시간 삭제
+            status = await deleteWeekTimeAvailable(req.body.weektimeToDelete, memberId, promiseId, tableName, promiseSettings[0], isMember);
+        } else if (weekvsdate === 'D' && ampmvstime === 'T') {
+            // 4. 가능한 날짜와 시간 삭제
+            status = await deleteDateTimeAvailable(req.body.datetimeToDelete, memberId, promiseId, tableName, promiseSettings[0], isMember);
+        }
+        if (status == 200) {
+            res.status(200).send({
+                message: "time deleted successfully"
+            });
+        } else if (status == 1750) {
+            res.status(400).send({
+                statusCode: 1750,
+                message: "wrong weekday string"
+            })
+        } else if (status == 1751) {
+            res.status(400).send({
+                statusCode: 1751,
+                message: "date out of range of promise"
+            })
+        } else if (status == 1752) {
+            res.status(400).send({
+                statusCode: 1752,
+                message: "wrong time id"
+            })
+        } else if (status == 1753) {
+            res.status(400).send({
+                statusCode: 1753,
+                message: "wrong time range"
+            })
+        } else if (status == 500) {
+            res.status(500).send({
+                message: `Error deleting time: backenderr`
+            });
+        } else if (status == 1745) {
+            res.status(400).send({
+                statusCode: 1745,
+                message: "try to delete not existing week"
+            })
+        } else if (status == 1744) {
+            res.status(400).send({
+                statusCode: 1744,
+                message: "try to delete not existing date"
+            })
+        } else if (status == 1743) {
+            res.status(400).send({
+                statusCode: 1743,
+                message: "try to delete not existing weektime"
+            })
+        } else if (status == 1742) {
+            res.status(400).send({
+                statusCode: 1742,
+                message: "try to delete not existing datetime"
+            })
+        } 
+});
+
+async function deleteWeekAvailable(weekToDelete, memberId, promiseId, tableName, isMember) {
+    // 가능한 요일 데이터 저장
+    let statusCode = 200
+    const correctString = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+    let existingWeeksQuery = "";
+
+    if (isMember) {
+        existingWeeksQuery = `
+            SELECT week_available FROM ${tableName}
+            WHERE memberjoin_id = (
+                SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}
+            )
+        `;
+    } else if (isMember === false) {
+        existingWeeksQuery = `
+            SELECT week_available FROM ${tableName}
+            WHERE nonmember_id = ${memberId}
+        `
+    }
+    const [existingWeeks] = await db.promise().query(existingWeeksQuery);
+    const existingWeeksArray = existingWeeks.map(item => item.week_available);
+
+    try {
+        for (let weekday of weekToDelete) {
+            if (existingWeeksArray.includes(weekday)) {
+                // 존재하는 요일인 경우에만 삭제 실행
+                if (correctString.includes(weekday)) {
+                    if (isMember) {
+                        await db.promise().query(`
+                            DELETE ${tableName}
+                            FROM ${tableName}
+                            JOIN memberjoin ON ${tableName}.memberjoin_id = memberjoin.memberjoin_id
+                            WHERE memberjoin.member_id = ${memberId} AND memberjoin.promise_id = ${promiseId}
+                            AND ${tableName}.week_available = '${weekday}';
+                        `); 
+                    } else if (isMember === false) {
+                        await db.promise().query(`
+                            DELETE FROM ${tableName}
+                            WHERE nonmember_id = ${memberId} AND promise_id = ${promiseId}
+                            AND week_available = '${weekday}';
+                        `); 
+                    }
+                
+                } else {
+                    statusCode = 1750;
+                }
+                } else {
+                    statusCode = 1745
+                }
+            
+        }
+    } catch(err) {
+        console.log(err);
+        statusCode = 500;
+    }
+    return statusCode;
+}
+
+async function deleteDateAvailable(dateToDelete, memberId, promiseId, tableName, isMember) {
+    // 해당 promise_id에 해당하는 datetomeet 값 가져오기
+    const [validDates] = await db.promise().query(`
+        SELECT datetomeet FROM promisedate WHERE promise_id = ${promiseId}
+    `);
+    const validDatesArray = validDates.map(item => {
+        const date = new Date(item.datetomeet);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0'); // getMonth()는 0부터 시작하므로 1을 더함
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    });
+    let statusCode = 200;
+    let existingDatesQuery = "";
+
+    if (isMember) {
+        existingDatesQuery = `
+            SELECT date_available FROM ${tableName}
+            WHERE memberjoin_id = (
+                SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}
+            )
+        `;
+    } else if (isMember === false) {
+        existingDatesQuery = `
+            SELECT date_available FROM ${tableName}
+            WHERE nonmember_id = ${memberId}
+        `
+    }
+    const [existingDates] = await db.promise().query(existingDatesQuery);
+    const existingDatesArray = existingDates.map(item => item.date_available);
+
+    try {
+        for (let date of dateToDelete) {
+            if (existingDatesArray.includes(date)) {
+                if (validDatesArray.includes(date)) {
+                    // 주어진 날짜가 유효한 날짜 배열에 있는지 확인
+                    if (isMember) {
+                        await db.promise().query(`
+                            DELETE ${tableName}
+                            FROM ${tableName}
+                            JOIN memberjoin ON ${tableName}.memberjoin_id = memberjoin.memberjoin_id
+                            WHERE memberjoin.member_id = ${memberId} AND memberjoin.promise_id = ${promiseId}
+                            AND ${tableName}.date_available = '${date}';
+                        `);
+                    } else if (isMember === false) {
+                        await db.promise().query(`
+                            DELETE FROM ${tableName}
+                            WHERE nonmember_id = ${memberId} AND promise_id = ${promiseId}
+                            AND date_available = '${date}';
+                        `);
+                    }
+                } else {
+                    statusCode = 1751;
+                }
+            } else {
+                statusCode = 1744
+            }
+        }
+    } catch(err) {
+        console.log(err);
+        statusCode = 500;
+    }
+    return statusCode;
+}
+
+async function deleteWeekTimeAvailable(weektimeToDelete, memberId, promiseId, tableName, promiseSettings, isMember) {
+    const { start_time, end_time } = promiseSettings;
+    const correctString = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+    let statusCode = 200;
+    let existingWeektimesQuery = "";
+
+    if (isMember) {
+        existingWeektimesQuery = `
+            SELECT CONCAT(week_available, ' ', start_time, ' ', end_time) AS weektime
+            FROM ${tableName}
+            JOIN timeslot ON ${tableName}.time_id = timeslot.id
+            WHERE memberjoin_id = (
+                SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}
+            )
+        `;
+    } else if (isMember === false) {
+        existingWeektimesQuery = `
+            SELECT CONCAT(week_available, ' ', start_time, ' ', end_time) AS weektime
+            FROM ${tableName}
+            JOIN timeslot ON ${tableName}.time_id = timeslot.id
+            WHERE nonmember_id = ${memberId}
+        `
+    }
+    const [existingWeektimes] = await db.promise().query(existingWeektimesQuery);
+    const existingWeektimesArray = existingWeektimes.map(item => item.weektime);
+
+    for (let weekdaytime of weektimeToDelete) {
+        // 요일, 시작 시간, 종료 시간 파싱
+        const [weekday, startTime, endTime] = weekdaytime.split(' ');
+        if (existingWeektimesArray.includes(weekdaytime)) {
+            if (correctString.includes(weekday)) { 
+                // 시간이 유효한 범위 내에 있는지 확인
+                if (startTime >= start_time && endTime <= end_time) {
+                    // timeslot 테이블에서 해당 시간에 대한 time_id 찾기
+                    const [timeSlot] = await db.promise().query(`
+                        SELECT id FROM timeslot 
+                        WHERE start_time = '${startTime}' AND end_time = '${endTime}'
+                    `);
+                    const timeId = timeSlot[0]?.id;
+    
+                    if (timeId) {
+                        if (isMember) {
+                            await db.promise().query(`
+                                DELETE FROM ${tableName}
+                                WHERE memberjoin_id = (
+                                    SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}
+                                )
+                                AND week_available = '${weekday}'
+                                AND time_id = ${timeId}
+                            `);
+                        } else if (isMember === false) {
+                            await db.promise().query(`
+                                DELETE FROM ${tableName}
+                                WHERE nonmember_id = ${memberId}
+                                AND week_available = '${weekday}'
+                                AND time_id = ${timeId}
+                            `); 
+                        }
+                    } else {
+                        statusCode = 1752;
+                    }
+                } else {
+                    statusCode = 1753;
+                }
+            
+            } else {
+                statusCode = 1750;
+            }
+        } else {
+            statusCode = 1743;
+        }
+    }
+    return statusCode;
+}
+
+async function deleteDateTimeAvailable(datetimeToDelete, memberId, promiseId, tableName, promiseSettings, isMember) {
+    const { start_time, end_time } = promiseSettings;
+
+    const [validDates] = await db.promise().query(`
+        SELECT datetomeet FROM promisedate WHERE promise_id = ${promiseId}
+    `);
+    const validDatesArray = validDates.map(item => {
+        const date = new Date(item.datetomeet);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0'); // getMonth()는 0부터 시작하므로 1을 더함
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    });
+    let statusCode = 200;
+    let existingDatetimesQuery = "";
+
+    if (isMember) {
+        existingDatetimesQuery = `
+            SELECT CONCAT(date_available, ' ', start_time, ' ', end_time) AS datetime
+            FROM ${tableName}
+            JOIN timeslot ON ${tableName}.time_id = timeslot.id
+            WHERE memberjoin_id = (
+                SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}
+            )
+        `;
+    } else if (isMember === false) {
+        existingDatetimesQuery = `
+            SELECT CONCAT(date_available, ' ', start_time, ' ', end_time) AS datetime
+            FROM ${tableName}
+            JOIN timeslot ON ${tableName}.time_id = timeslot.id
+            WHERE nonmember_id = ${memberId}
+        `
+    }
+    const [existingDatetimes] = await db.promise().query(existingDatetimesQuery);
+    const existingDatetimesArray = existingDatetimes.map(item => item.datetime);
+
+    try {
+        for (let datetime of datetimeToDelete) {
+            const [date, startTime, endTime] = datetime.split(' ');
+            if (existingDatetimesArray.includes(datetime)) {
+                if (validDatesArray.includes(date)) {
+                    // 시간이 유효한 범위 내에 있는지 확인
+                    if (startTime >= start_time && endTime <= end_time) {
+                        // timeslot 테이블에서 해당 시간에 대한 time_id 찾기
+                        const [timeSlot] = await db.promise().query(`
+                            SELECT id FROM timeslot 
+                            WHERE start_time = '${startTime}' AND end_time = '${endTime}'
+                        `);
+        
+                        const timeId = timeSlot[0]?.id;
+        
+                        if (timeId) {
+                            if (isMember) {
+                                await db.promise().query(`
+                                    DELETE FROM ${tableName}
+                                    WHERE memberjoin_id IN (
+                                        SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}
+                                    )
+                                    AND date_available = '${date}'
+                                    AND time_id = ${timeId};
+                                    `);
+                            } else if (isMember === false) {
+                                await db.promise().query(`
+                                    DELETE FROM ${tableName}
+                                    WHERE nonmember_id = ${memberId}
+                                    AND promise_id = ${promiseId}
+                                    AND date_available = '${date}'
+                                    AND time_id = ${timeId};
+                                `);
+                            }
+                        } else {
+                            statusCode = 1752;
+                        }
+                    } else {
+                        statusCode = 1753;
+                    }
+                } else {
+                    statusCode = 1751;
+                }
+            } else {
+                statusCode = 1742;
+            }
+        }
+    } catch (err) {
+        console.log(err);
+        statusCode = 500;
+    }
+    return statusCode;
+}
+
+router.get('/baseinfo/:promiseid', authMember, async(req, res) => {
+
+});
+
+router.get('/filterinfo/:promiseid', authMember, async(req, res) => {
+
+});
+
+router.get('/participants/:promiseid', authMember, async(req, res) => {
+    // 해당 약속에 참여하고 있는 회원, 비회원의 목록을 반환
+    const promiseId = req.params.promiseid;
+    if (promiseId === undefined) {
+        return res.status(400).json({
+            statusCode: 1800,
+            message: "promise id is required on parameter"
+        })
+    }
+
+    try {
+        if (req.isMember) {
+            // 해당 약속에 참여하고 있는 비회원 정보 조회
+            const [nonMembers] = await db.promise().query(`
+                SELECT nonmember_id AS id, nonmember_name AS name, 'nonmember' AS type FROM nonmember
+                WHERE promise_id = ${promiseId}
+            `);
+
+            // 해당 약속에 참여하고 있는 회원 정보 조회
+            const [members] = await db.promise().query(`
+                SELECT member.member_id AS id, memberjoin.member_promise_name AS name, 'member' AS type
+                FROM memberjoin
+                JOIN member ON memberjoin.member_id = member.member_id
+                WHERE memberjoin.promise_id = ${promiseId}
+            `);
+
+            // 회원 및 비회원 정보를 하나의 배열로 합치기 (회원 정보가 먼저 나옴)
+            const participants = members.concat(nonMembers);
+
+            if (participants.length == 0) {
+                res.status(404).send({
+                    statusCode: 1801,
+                    message: "no participants"
+                })
+            } else {
+            // 조회된 회원 및 비회원 정보 반환
+                res.status(200).send(participants);
+            }
+        } else if (req.isMember === false) {
+            res.status(400).send({
+                statusCode: 1802,
+                message: "nonmember can't use this api"
+            })
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Error retrieving participants" });
+    }
+});
+
+router.patch('/link', authMember, async(req, res) => {
+
+});
 
 module.exports = router;

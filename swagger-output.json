@@ -538,6 +538,96 @@
         ]
       }
     },
+    "/promise/deletetime": {
+      "delete": {
+        "tags": [
+          "promise"
+        ],
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "promiseId": {
+                  "example": 1
+                },
+                "weekToDelete": {
+                  "example": [
+                    "SUN", "MON", "TUE"
+                  ]
+                },
+                "dateToDelete": {
+                  "example": [
+                    "2024-01-15", "2024-01-16", "2024-01-17"
+                  ]
+                },
+                "weektimeToDelete": {
+                  "example": [
+                    "SUN 00:00:00 00:30:00", "SUN 00:30:00 01:00:00", "MON 12:00:00 12:30:00"
+                  ]
+                },
+                "datetimeToDelete": {
+                  "example": [
+                    "2024-01-15 00:00:00 00:30:00", "2024-01-16 00:30:00 01:00:00", "2024-01-17 12:00:00 12:30:00"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/promise/participants/{promiseid}": {
+      "get": {
+        "tags": [
+          "promise"
+        ],
+        "parameters": [
+          {
+            "name": "promiseid",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "description": "return username if access token available",
+        "responses": {
+          "200": {
+            "description": "Found user name"
+          },
+          "400": {
+            "description": "No header"
+          },
+          "401": {
+            "description": "access denied(non member) or jwt expired"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/home/bookmark": {
       "patch": {
         "tags": [
