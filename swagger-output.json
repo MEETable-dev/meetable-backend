@@ -628,6 +628,50 @@
         ]
       }
     },
+    "/promise/link": {
+      "post": {
+        "tags": [
+          "promise"
+        ],
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "promiseId": {
+                  "example": "string(숫자만 parsing)"
+                },
+                "nickname": {
+                  "example": "string"
+                },
+                "password": {
+                  "example": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/home/bookmark": {
       "patch": {
         "tags": [
