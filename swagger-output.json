@@ -672,6 +672,54 @@
         ]
       }
     },
+    "/promise/baseinfo/{promiseid}": {
+      "get": {
+        "tags": [
+          "promise"
+        ],
+        "parameters": [
+          {
+            "name": "promiseid",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "description": "날짜기준, 시간 선택 x시 해당하는 월을 2024-02의 형태로 전달 없을 경우 이번달",
+            "schema": {
+              "type": "string"
+              }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "description": "날짜기준, 시간 선택 O시 해당하는 날짜를 2024-03-11의 형태로 전달 없을 경우 오늘 날짜",
+            "schema": {
+              "type": "string"
+              }
+          }
+        ],
+        "description": "약속정보 반환",
+        "responses": {
+          "200": {
+            "description": "존재하는 약속"
+          },
+          "404": {
+            "description": "promise not found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/home/bookmark": {
       "patch": {
         "tags": [

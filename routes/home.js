@@ -171,6 +171,7 @@ router.get('/totalpromise', authMember, async(req, res) => {
 });
 
 // 약속 삭제
+// TODO: 약속 삭제 id 리스트로 받기
 router.patch('/deletepromise', authMember, async(req, res) => {
     if (req.isMember === true) {
         try {
@@ -438,6 +439,7 @@ router.patch('/restore', authMember, async(req, res) => {
 });
 
 // 약속에서 빠지기
+// TODO: promiseID 리스트로/ 작동은 왜 안된다 할까..
 router.delete('/backoutpromise', authMember, async(req, res) => {
     const promiseId = req.body.promiseId;
     const isMember = req.isMember; // 회원 여부
