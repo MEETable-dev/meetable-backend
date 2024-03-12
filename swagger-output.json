@@ -45,1081 +45,1037 @@
     }
   ],
   "paths": {
-    "/auth/signup": {
-      "post": {
-        "tags": [
-          "auth"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "signToken": {
-                  "example": "string"
-                }, "marketingPolicy": {
-                  "example": "T or F"
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Created"
-          },
-          "400": {
-            "description": "Bad Request"
-          }
-        }
-      }
-    },
-    "/auth/login": {
-      "post": {
-        "tags": [
-          "auth"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "email": {
-                  "example": "string"
-                },"pwd": {
-                  "example": "string"
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/auth/signToken": {
-      "post": {
-        "tags": [
-          "auth"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "example": "string"
-                },
-                "emailToken": {
-                  "example": "string"
-                },
-                "pwd": {
-                  "example": "string"
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/auth/token": {
-      "post": {
-        "tags": [
-          "auth"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "accessToken": {
-                  "example": "string"
-                },
-                "refreshToken": {
-                  "example": "string"
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/auth/test": {
-      "get": {
-        "description": "test api",
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        }, 
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/auth/sendVerifyCode": {
-      "post": {
-        "tags": [
-          "auth"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "email": {
-                  "example": "string"
-                },
-                "findPwdOrSignup": {
-                  "example": "P or S"
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      }
-    },
-    "/auth/confirmVerifyCode": {
-      "post": {
-        "tags": [
-          "auth"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "email": {
-                  "example": "string"
-                },
-                "verifyCode": {
-                  "example": "string"
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Created"
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        }
-      }
-    },
-    "/auth/findEmail": {
-      "get": {
-        "tags": [
-          "auth"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "email",
-            "in": "query",
-            "required": true,
-            "type": "string"
-          },
-          {
-            "name": "name",
-            "in": "query",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Found"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/auth/resetpwd": {
-      "patch": {
-        "tags": [
-          "auth"
-        ],
-        "description": "비회원이면 헤더에 @, body에 emailToken, newPwd 주고 회원이면 헤더에 access token, body에 originalPwd, newPwd 주기",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "emailToken": {
-                  "example": "string"
-                },
-                "newPwd": {
-                  "example": "string"
-                }, "originalPwd": {
-                  "example": "string"
-                }
-              }
-            }
-          }
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/auth/logout": {
-      "post": {
-        "tags": [
-          "auth"
-        ],
-        "description": "",
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/promise/username": {
-      "get": {
-        "tags": [
-          "promise"
-        ],
-        "description": "return username if access token available",
-        "responses": {
-          "200": {
-            "description": "Found user name"
-          },
-          "400": {
-            "description": "No header"
-          },
-          "401": {
-            "description": "access denied(non member) or jwt expired"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/promise/create": {
-      "post": {
-        "tags": [
-          "promise"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "promise_name": {
-                  "example": "string"
-                },
-                "weekvsdate": {
-                  "example": "W or D"
-                },
-                "ampmvstime": {
-                  "example": "T or F"
-                },
-                "start_time": {
-                  "example": "09:00:00"
-                },
-                "end_time": {
-                  "example": "17:00:00"
-                },
-                "date": {
-                  "example": [
-                    "2023-12-17",
-                    "2023-12-25"
-                  ]
-                },
-                "canallconfirm": {
-                  "example": "T or F"
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "OK"
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/promise/participate": {
-      "post": {
-        "tags": [
-          "promise"
-        ],
-        "description": "회원일 경우 password는 not required",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "promiseId": {
-                  "example": "string(숫자만 parsing)"
-                },
-                "nickname": {
-                  "example": "string"
-                },
-                "password": {
-                  "example": "string"
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "Bad Request"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/promise/time": {
-      "post": {
-        "tags": [
-          "promise"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "promiseId": {
-                  "example": 1
-                },
-                "weekAvailable": {
-                  "example": [
-                    "SUN", "MON", "TUE"
-                  ]
-                },
-                "dateAvailable": {
-                  "example": [
-                    "2024-01-15", "2024-01-16", "2024-01-17"
-                  ]
-                },
-                "weektimeAvailable": {
-                  "example": [
-                    "SUN 00:00:00 00:30:00", "SUN 00:30:00 01:00:00", "MON 12:00:00 12:30:00"
-                  ]
-                },
-                "datetimeAvailable": {
-                  "example": [
-                    "2024-01-15 00:00:00 00:30:00", "2024-01-16 00:30:00 01:00:00", "2024-01-17 12:00:00 12:30:00"
-                  ]
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Created"
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/promise/deletetime": {
-      "delete": {
-        "tags": [
-          "promise"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "promiseId": {
-                  "example": 1
-                },
-                "weekToDelete": {
-                  "example": [
-                    "SUN", "MON", "TUE"
-                  ]
-                },
-                "dateToDelete": {
-                  "example": [
-                    "2024-01-15", "2024-01-16", "2024-01-17"
-                  ]
-                },
-                "weektimeToDelete": {
-                  "example": [
-                    "SUN 00:00:00 00:30:00", "SUN 00:30:00 01:00:00", "MON 12:00:00 12:30:00"
-                  ]
-                },
-                "datetimeToDelete": {
-                  "example": [
-                    "2024-01-15 00:00:00 00:30:00", "2024-01-16 00:30:00 01:00:00", "2024-01-17 12:00:00 12:30:00"
-                  ]
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Created"
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/promise/participants/{promiseid}": {
-      "get": {
-        "tags": [
-          "promise"
-        ],
-        "parameters": [
-          {
-            "name": "promiseid",
-            "in": "path",
-            "required": true,
-            "type": "integer"
-          }
-        ],
-        "description": "return username if access token available",
-        "responses": {
-          "200": {
-            "description": "Found user name"
-          },
-          "400": {
-            "description": "No header"
-          },
-          "401": {
-            "description": "access denied(non member) or jwt expired"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/promise/link": {
-      "post": {
-        "tags": [
-          "promise"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "promiseId": {
-                  "example": "string(숫자만 parsing)"
-                },
-                "nickname": {
-                  "example": "string"
-                },
-                "password": {
-                  "example": "string"
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Created"
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "401": {
-            "description": "Unauthorized"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/promise/baseinfo/{promiseid}": {
-      "get": {
-        "tags": [
-          "promise"
-        ],
-        "parameters": [
-          {
-            "name": "promiseid",
-            "in": "path",
-            "required": true,
-            "type": "integer"
-          },
-          {
-            "name": "month",
-            "in": "query",
-            "description": "날짜기준, 시간 선택 x시 해당하는 월을 2024-02의 형태로 전달 없을 경우 이번달",
-            "schema": {
-              "type": "string"
-              }
-          },
-          {
-            "name": "date",
-            "in": "query",
-            "description": "날짜기준, 시간 선택 O시 해당하는 날짜를 2024-03-11의 형태로 전달 없을 경우 오늘 날짜",
-            "schema": {
-              "type": "string"
+      "/auth/signup": {
+          "post": {
+              "tags": ["auth"],
+              "description": "",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "signToken": {
+                                  "example": "string"
+                              },
+                              "marketingPolicy": {
+                                  "example": "T or F"
+                              }
+                          }
+                      }
+                  }
+              ],
+              "responses": {
+                  "201": {
+                      "description": "Created"
+                  },
+                  "400": {
+                      "description": "Bad Request"
+                  }
               }
           }
-        ],
-        "description": "약속정보 반환",
-        "responses": {
-          "200": {
-            "description": "존재하는 약속"
-          },
-          "404": {
-            "description": "promise not found"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/home/bookmark": {
-      "patch": {
-        "tags": [
-          "home"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "isBookmark": {
-                  "example": "T or F"
-                },
-                "promiseId": {
-                  "example": 1
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/home/folder": {
-      "post": {
-        "description": "not in use",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "foldereName": {
-                  "example": "string"
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/home/totalpromise": {
-      "get": {
-        "tags": [
-          "home"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "sortBy",
-            "in": "query",
-            "description": "name: 이름 순 정렬, id: 생성일 순 정렬",
-            "schema": {
-              "type": "string"
+      },
+      "/auth/login": {
+          "post": {
+              "tags": ["auth"],
+              "description": "",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "email": {
+                                  "example": "string"
+                              },
+                              "pwd": {
+                                  "example": "string"
+                              }
+                          }
+                      }
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "OK"
+                  },
+                  "401": {
+                      "description": "Unauthorized"
+                  },
+                  "404": {
+                      "description": "Not Found"
+                  }
               }
           }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "401": {
-            "description": "access denied"
-          },
-          "500": {
-            "description": "some errors"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/home/deletepromise": {
-      "patch": {
-        "tags": [
-          "home"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "promiseId": {
-                  "example": 1
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/home/trash": {
-      "get": {
-        "tags": [
-          "home"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "sortBy",
-            "in": "query",
-            "description": "name: 이름 순 정렬, id: 생성일 순 정렬",
-            "schema": {
-              "type": "string"
+      },
+      "/auth/signToken": {
+          "post": {
+              "tags": ["auth"],
+              "description": "",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "name": {
+                                  "example": "string"
+                              },
+                              "emailToken": {
+                                  "example": "string"
+                              },
+                              "pwd": {
+                                  "example": "string"
+                              }
+                          }
+                      }
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "OK"
+                  }
               }
           }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "401": {
-            "description": "access denied"
-          },
-          "500": {
-            "description": "some errors"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/home/promisename": {
-      "patch": {
-        "tags": [
-          "home"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "promiseName": {
-                  "example": "약속22"
-                },
-                "promiseId": {
-                  "example": 1
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/home/search": {
-      "get": {
-        "tags": [
-          "home"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "searchTerm",
-            "in": "query",
-            "description": "검색어를 넣어주세요",
-            "schema": {
-              "type": "string"
+      },
+      "/auth/token": {
+          "post": {
+              "tags": ["auth"],
+              "description": "",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "accessToken": {
+                                  "example": "string"
+                              },
+                              "refreshToken": {
+                                  "example": "string"
+                              }
+                          }
+                      }
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "OK"
+                  },
+                  "401": {
+                      "description": "Unauthorized"
+                  },
+                  "404": {
+                      "description": "Not Found"
+                  }
               }
           }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "401": {
-            "description": "access denied"
-          },
-          "500": {
-            "description": "some errors"
+      },
+      "/auth/test": {
+          "get": {
+              "description": "test api",
+              "responses": {
+                  "200": {
+                      "description": "OK"
+                  },
+                  "401": {
+                      "description": "Unauthorized"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
           }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/home/restore": {
-      "patch": {
-        "tags": [
-          "home"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "promiseId": {
-                  "example": 1
-                }
+      },
+      "/auth/sendVerifyCode": {
+          "post": {
+              "tags": ["auth"],
+              "description": "",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "email": {
+                                  "example": "string"
+                              },
+                              "findPwdOrSignup": {
+                                  "example": "P or S"
+                              }
+                          }
+                      }
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "OK"
+                  },
+                  "500": {
+                      "description": "Internal Server Error"
+                  }
               }
-            }
           }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "401": {
-            "description": "access denied"
-          },
-          "500": {
-            "description": "some errors"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/home/backoutpromise": {
-      "delete": {
-        "tags": [
-          "home"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "promiseId": {
-                  "example": 1
-                }
+      },
+      "/auth/confirmVerifyCode": {
+          "post": {
+              "tags": ["auth"],
+              "description": "",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "email": {
+                                  "example": "string"
+                              },
+                              "verifyCode": {
+                                  "example": "string"
+                              }
+                          }
+                      }
+                  }
+              ],
+              "responses": {
+                  "201": {
+                      "description": "Created"
+                  },
+                  "400": {
+                      "description": "Bad Request"
+                  },
+                  "401": {
+                      "description": "Unauthorized"
+                  }
               }
-            }
           }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }, "400": {
-            "description": "Bad Request"
-          }, "500": {
-            "description": "백엔드 에러"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/home/backoutall": {
-      "delete": {
-        "tags": [
-          "home"
-        ],
-        "description": "",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }, "401": {
-            "description": "access denied"
-          }, "500": {
-            "description": "백엔드 에러"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/member/info": {
-      "get": {
-        "tags": [
-          "member"
-        ],
-        "description": "",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    },
-    "/member/resetname": {
-      "patch": {
-        "tags": [
-          "member"
-        ],
-        "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "example": "seungho111"
-                }
+      },
+      "/auth/findEmail": {
+          "get": {
+              "tags": ["auth"],
+              "description": "",
+              "parameters": [
+                  {
+                      "name": "email",
+                      "in": "query",
+                      "required": true,
+                      "type": "string"
+                  },
+                  {
+                      "name": "name",
+                      "in": "query",
+                      "required": true,
+                      "type": "string"
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "Found"
+                  },
+                  "404": {
+                      "description": "Not Found"
+                  }
               }
-            }
           }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
+      },
+      "/auth/resetpwd": {
+          "patch": {
+              "tags": ["auth"],
+              "description": "비회원이면 헤더에 @, body에 emailToken, newPwd 주고 회원이면 헤더에 access token, body에 originalPwd, newPwd 주기",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "emailToken": {
+                                  "example": "string"
+                              },
+                              "newPwd": {
+                                  "example": "string"
+                              },
+                              "originalPwd": {
+                                  "example": "string"
+                              }
+                          }
+                      }
+                  }
+              ],
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "OK"
+                  }
+              }
           }
-        },
-        "security": [
-          {
-            "bearerAuth": []
+      },
+      "/auth/logout": {
+          "post": {
+              "tags": ["auth"],
+              "description": "",
+              "responses": {
+                  "200": {
+                      "description": "OK"
+                  },
+                  "401": {
+                      "description": "Unauthorized"
+                  },
+                  "404": {
+                      "description": "Not Found"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
           }
-        ]
+      },
+      "/promise/username": {
+          "get": {
+              "tags": ["promise"],
+              "description": "return username if access token available",
+              "responses": {
+                  "200": {
+                      "description": "Found user name"
+                  },
+                  "400": {
+                      "description": "No header"
+                  },
+                  "401": {
+                      "description": "access denied(non member) or jwt expired"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/promise/create": {
+          "post": {
+              "tags": ["promise"],
+              "description": "",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "promise_name": {
+                                  "example": "string"
+                              },
+                              "weekvsdate": {
+                                  "example": "W or D"
+                              },
+                              "ampmvstime": {
+                                  "example": "T or F"
+                              },
+                              "start_time": {
+                                  "example": "09:00:00"
+                              },
+                              "end_time": {
+                                  "example": "17:00:00"
+                              },
+                              "date": {
+                                  "example": ["2023-12-17", "2023-12-25"]
+                              },
+                              "canallconfirm": {
+                                  "example": "T or F"
+                              }
+                          }
+                      }
+                  }
+              ],
+              "responses": {
+                  "201": {
+                      "description": "OK"
+                  },
+                  "401": {
+                      "description": "Unauthorized"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/promise/participate": {
+          "post": {
+              "tags": ["promise"],
+              "description": "회원일 경우 password는 not required",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "promiseId": {
+                                  "example": "string(숫자만 parsing)"
+                              },
+                              "nickname": {
+                                  "example": "string"
+                              },
+                              "password": {
+                                  "example": "string"
+                              }
+                          }
+                      }
+                  }
+              ],
+              "responses": {
+                  "201": {
+                      "description": "OK"
+                  },
+                  "400": {
+                      "description": "Bad Request"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/promise/time": {
+          "post": {
+              "tags": ["promise"],
+              "description": "",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "promiseId": {
+                                  "example": 1
+                              },
+                              "weekAvailable": {
+                                  "example": ["SUN", "MON", "TUE"]
+                              },
+                              "dateAvailable": {
+                                  "example": [
+                                      "2024-01-15",
+                                      "2024-01-16",
+                                      "2024-01-17"
+                                  ]
+                              },
+                              "weektimeAvailable": {
+                                  "example": [
+                                      "SUN 00:00:00 00:30:00",
+                                      "SUN 00:30:00 01:00:00",
+                                      "MON 12:00:00 12:30:00"
+                                  ]
+                              },
+                              "datetimeAvailable": {
+                                  "example": [
+                                      "2024-01-15 00:00:00 00:30:00",
+                                      "2024-01-16 00:30:00 01:00:00",
+                                      "2024-01-17 12:00:00 12:30:00"
+                                  ]
+                              }
+                          }
+                      }
+                  }
+              ],
+              "responses": {
+                  "201": {
+                      "description": "Created"
+                  },
+                  "400": {
+                      "description": "Bad Request"
+                  },
+                  "401": {
+                      "description": "Unauthorized"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/promise/deletetime": {
+          "delete": {
+              "tags": ["promise"],
+              "description": "",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "promiseId": {
+                                  "example": 1
+                              },
+                              "weekToDelete": {
+                                  "example": ["SUN", "MON", "TUE"]
+                              },
+                              "dateToDelete": {
+                                  "example": [
+                                      "2024-01-15",
+                                      "2024-01-16",
+                                      "2024-01-17"
+                                  ]
+                              },
+                              "weektimeToDelete": {
+                                  "example": [
+                                      "SUN 00:00:00 00:30:00",
+                                      "SUN 00:30:00 01:00:00",
+                                      "MON 12:00:00 12:30:00"
+                                  ]
+                              },
+                              "datetimeToDelete": {
+                                  "example": [
+                                      "2024-01-15 00:00:00 00:30:00",
+                                      "2024-01-16 00:30:00 01:00:00",
+                                      "2024-01-17 12:00:00 12:30:00"
+                                  ]
+                              }
+                          }
+                      }
+                  }
+              ],
+              "responses": {
+                  "201": {
+                      "description": "Created"
+                  },
+                  "400": {
+                      "description": "Bad Request"
+                  },
+                  "401": {
+                      "description": "Unauthorized"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/promise/participants/{promiseid}": {
+          "get": {
+              "tags": ["promise"],
+              "parameters": [
+                  {
+                      "name": "promiseid",
+                      "in": "path",
+                      "required": true,
+                      "type": "integer"
+                  }
+              ],
+              "description": "return username if access token available",
+              "responses": {
+                  "200": {
+                      "description": "Found user name"
+                  },
+                  "400": {
+                      "description": "No header"
+                  },
+                  "401": {
+                      "description": "access denied(non member) or jwt expired"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/promise/link": {
+          "post": {
+              "tags": ["promise"],
+              "description": "",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "promiseId": {
+                                  "example": "string(숫자만 parsing)"
+                              },
+                              "nickname": {
+                                  "example": "string"
+                              },
+                              "password": {
+                                  "example": "string"
+                              }
+                          }
+                      }
+                  }
+              ],
+              "responses": {
+                  "201": {
+                      "description": "Created"
+                  },
+                  "400": {
+                      "description": "Bad Request"
+                  },
+                  "401": {
+                      "description": "Unauthorized"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/promise/baseinfo/{promiseid}": {
+          "get": {
+              "tags": ["promise"],
+              "parameters": [
+                  {
+                      "name": "promiseid",
+                      "in": "path",
+                      "required": true,
+                      "type": "integer"
+                  },
+                  {
+                      "name": "month",
+                      "in": "query",
+                      "description": "날짜기준, 시간 선택 x시 해당하는 월을 2024-02의 형태로 전달 없을 경우 이번달",
+                      "schema": {
+                          "type": "string"
+                      }
+                  },
+                  {
+                      "name": "date",
+                      "in": "query",
+                      "description": "날짜기준, 시간 선택 O시 해당하는 날짜를 2024-03-11의 형태로 전달 없을 경우 오늘 날짜",
+                      "schema": {
+                          "type": "string"
+                      }
+                  }
+              ],
+              "description": "약속정보 반환",
+              "responses": {
+                  "200": {
+                      "description": "존재하는 약속"
+                  },
+                  "404": {
+                      "description": "promise not found"
+                  },
+                  "500": {
+                      "description": "Internal Server Error"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/home/bookmark": {
+          "patch": {
+              "tags": ["home"],
+              "description": "",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "isBookmark": {
+                                  "example": "T or F"
+                              },
+                              "promiseId": {
+                                  "example": 1
+                              }
+                          }
+                      }
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "OK"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/home/folder": {
+          "post": {
+              "description": "not in use",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "foldereName": {
+                                  "example": "string"
+                              }
+                          }
+                      }
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "OK"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/home/totalpromise": {
+          "get": {
+              "tags": ["home"],
+              "description": "",
+              "parameters": [
+                  {
+                      "name": "sortBy",
+                      "in": "query",
+                      "description": "name: 이름 순 정렬, id: 생성일 순 정렬",
+                      "schema": {
+                          "type": "string"
+                      }
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "OK"
+                  },
+                  "401": {
+                      "description": "access denied"
+                  },
+                  "500": {
+                      "description": "some errors"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/home/deletepromise": {
+          "patch": {
+              "tags": ["home"],
+              "description": "",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "promiseId": {
+                                  "example": [1, 2, 3]
+                              }
+                          }
+                      }
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "OK"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/home/trash": {
+          "get": {
+              "tags": ["home"],
+              "description": "",
+              "parameters": [
+                  {
+                      "name": "sortBy",
+                      "in": "query",
+                      "description": "name: 이름 순 정렬, id: 생성일 순 정렬",
+                      "schema": {
+                          "type": "string"
+                      }
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "OK"
+                  },
+                  "401": {
+                      "description": "access denied"
+                  },
+                  "500": {
+                      "description": "some errors"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/home/promisename": {
+          "patch": {
+              "tags": ["home"],
+              "description": "",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "promiseName": {
+                                  "example": "약속22"
+                              },
+                              "promiseId": {
+                                  "example": 1
+                              }
+                          }
+                      }
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "OK"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/home/search": {
+          "get": {
+              "tags": ["home"],
+              "description": "",
+              "parameters": [
+                  {
+                      "name": "searchTerm",
+                      "in": "query",
+                      "description": "검색어를 넣어주세요",
+                      "schema": {
+                          "type": "string"
+                      }
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "OK"
+                  },
+                  "401": {
+                      "description": "access denied"
+                  },
+                  "500": {
+                      "description": "some errors"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/home/restore": {
+          "patch": {
+              "tags": ["home"],
+              "description": "",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "promiseId": {
+                                  "example": [1, 2, 3]
+                              }
+                          }
+                      }
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "OK"
+                  },
+                  "401": {
+                      "description": "access denied"
+                  },
+                  "500": {
+                      "description": "some errors"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/home/backoutpromise": {
+          "delete": {
+              "tags": ["home"],
+              "description": "",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "promiseId": {
+                                  "example": [1, 2, 3]
+                              }
+                          }
+                      }
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "OK"
+                  },
+                  "400": {
+                      "description": "Bad Request"
+                  },
+                  "500": {
+                      "description": "백엔드 에러"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/home/backoutall": {
+          "delete": {
+              "tags": ["home"],
+              "description": "",
+              "responses": {
+                  "200": {
+                      "description": "OK"
+                  },
+                  "401": {
+                      "description": "access denied"
+                  },
+                  "500": {
+                      "description": "백엔드 에러"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/member/info": {
+          "get": {
+              "tags": ["member"],
+              "description": "",
+              "responses": {
+                  "200": {
+                      "description": "OK"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/member/resetname": {
+          "patch": {
+              "tags": ["member"],
+              "description": "",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "name": {
+                                  "example": "seungho111"
+                              }
+                          }
+                      }
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "OK"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/member/quit": {
+          "delete": {
+              "tags": ["member"],
+              "description": "",
+              "responses": {
+                  "200": {
+                      "description": "OK"
+                  },
+                  "404": {
+                      "description": "Not Found"
+                  },
+                  "500": {
+                      "description": "백엔드 에러"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
       }
-    },
-    "/member/quit": {
-      "delete": {
-        "tags": [
-          "member"
-        ],
-        "description": "",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }, "404": {
-            "description": "Not Found"
-          }, "500": {
-            "description": "백엔드 에러"
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ]
-      }
-    }
   }
 }

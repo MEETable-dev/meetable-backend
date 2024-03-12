@@ -68,12 +68,12 @@ router.patch('/folder', authMember, async(req, res) => {
 });
 
 // 즐겨찾기 및 전체 폴더/약속 목록 불러오기
-router.get('/totalpromise', authMember, async(req, res) => {
+router.get("/totalpromise", authMember, async (req, res) => {
     if (req.query.sortBy === undefined) {
         res.status(400).send({
             statusCode: 1024,
-            message: "required query missed: sortBy"
-        })
+            message: "required query missed: sortBy",
+        });
     }
     if (req.isMember === true) {
         try {
@@ -89,7 +89,7 @@ router.get('/totalpromise', authMember, async(req, res) => {
                 JOIN memberjoin mj ON p.promise_id = mj.promise_id AND mj.member_id = ${req.memberId}
                 WHERE mj.is_bookmark = 'T' AND f.member_id = ${req.memberId} AND f.folder_name = 'meetable'
                 ORDER BY mj.last_bookmarked_at DESC;
-            `)
+            `);
             if (req.query.sortBy == "name") {
                 promises = await db.promise().query(`
                     SELECT mj.member_promise_name, p.promise_id, p.promise_code, mj.is_bookmark,
@@ -116,136 +116,143 @@ router.get('/totalpromise', authMember, async(req, res) => {
                 `);
             }
             if (bookmarked !== undefined && promises !== undefined) {
-                const bookmarkFormat = bookmarked[0].map(row => ({
+                const bookmarkFormat = bookmarked[0].map((row) => ({
                     count: row.participant_count,
                     promiseName: row.member_promise_name,
                     promiseCode: row.promise_id + "_" + row.promise_code,
-                    isBookmark: row.is_bookmark
-                }))
-                const promiseFormat = promises[0].map(row => ({
+                    isBookmark: row.is_bookmark,
+                }));
+                const promiseFormat = promises[0].map((row) => ({
                     count: row.participant_count,
                     promiseName: row.member_promise_name,
                     promiseCode: row.promise_id + "_" + row.promise_code,
-                    isBookmark: row.is_bookmark
+                    isBookmark: row.is_bookmark,
                 }));
                 res.status(200).send({
                     bookmark: bookmarkFormat,
                     promise: promiseFormat,
                     sortBy: req.query.sortBy,
-                    message: "member total promise list"
-                })
+                    message: "member total promise list",
+                });
             } else if (bookmarked === undefined && promises !== undefined) {
-                const promiseFormat = promises[0].map(row => ({
+                const promiseFormat = promises[0].map((row) => ({
                     count: row.participant_count,
                     promiseName: row.member_promise_name,
                     promiseCode: row.promise_id + "_" + row.promise_code,
-                    isBookmark: row.is_bookmark
+                    isBookmark: row.is_bookmark,
                 }));
                 res.status(200).send({
                     bookmark: {},
                     promise: promiseFormat,
                     sortBy: req.query.sortBy,
-                    message: "member total promise list"
-                })
+                    message: "member total promise list",
+                });
             } else if (bookmarked === undefined && promises === undefined) {
                 res.status(200).send({
                     bookmark: {},
                     promise: {},
                     sortBy: req.query.sortBy,
-                    message: "member total promise list"
-                })
+                    message: "member total promise list",
+                });
             }
-            
         } catch (err) {
             res.status(500).send({
                 statusCode: 1234,
-                message: `Error retreving promises: ${err.message}`
-            })
+                message: `Error retreving promises: ${err.message}`,
+            });
         }
     } else {
         res.status(401).send({
             statusCode: 1000,
-            message: "access denied."
+            message: "access denied.",
         });
     }
 });
 
 // 약속 삭제
 // TODO: 약속 삭제 id 리스트로 받기
-router.patch('/deletepromise', authMember, async(req, res) => {
+router.patch("/deletepromise", authMember, async (req, res) => {
     if (req.isMember === true) {
         try {
             const promiseId = req.body.promiseId;
             const memberId = req.memberId;
-            
-            // 'meetable' 폴더에 promise_id가 존재하는지 확인
-            const [meetableExists] = await db.promise().query(`
-                SELECT fp.promise_id FROM folder f
-                JOIN folder_promise fp ON f.folder_id = fp.folder_id
-                WHERE f.member_id = ${memberId} AND f.folder_name = 'meetable' AND fp.promise_id = ${promiseId}
-            `);
-            
-            if (meetableExists.length === 0) {
-                return res.status(404).send({
-                    statusCode: 4044,
-                    message: "participated promise not found"
+
+            if (!Array.isArray(promiseId)) {
+                return res.status(400).send({
+                    statusCode: 4000,
+                    message: "Invalid input: promiseIds should be an array",
                 });
             }
-            
+
             // 사용자의 'trash' 폴더 ID 찾기
             const [findFolderResult] = await db.promise().query(`
                 SELECT folder_id FROM folder 
                 WHERE member_id = ${memberId} AND folder_name = 'trash'
             `);
 
-             // 사용자의 'meetable' 폴더 ID 찾기
-             const [findMeetable] = await db.promise().query(`
+            // 사용자의 'meetable' 폴더 ID 찾기
+            const [findMeetable] = await db.promise().query(`
                 SELECT folder_id FROM folder 
                 WHERE member_id = ${memberId} AND folder_name = 'meetable'
             `);
 
             const trashFolderId = findFolderResult[0].folder_id;
             const meetableFolderId = findMeetable[0].folder_id;
-            
-            // 약속을 'trash' 폴더로 옮기기
-            await db.promise().query(`
-                UPDATE folder_promise
-                SET folder_id = ${trashFolderId}
-                WHERE promise_id = ${promiseId} AND folder_id = ${meetableFolderId}
-            `);
 
-            await db.promise().query(`
-                UPDATE memberjoin
-                SET is_bookmark = 'F'
-                WHERE member_id = ${memberId} AND promise_id = ${promiseId}
-            `);
+            for (const promiseid of promiseId) {
+                // 'meetable' 폴더에 promise_id가 존재하는지 확인
+                const [meetableExists] = await db.promise().query(`
+                    SELECT fp.promise_id FROM folder f
+                    JOIN folder_promise fp ON f.folder_id = fp.folder_id
+                    WHERE f.member_id = ${memberId} AND f.folder_name = 'meetable' AND fp.promise_id = ${promiseid}
+                `);
+
+                if (meetableExists.length === 0) {
+                    return res.status(404).send({
+                        statusCode: 4044,
+                        message: "participated promise not found",
+                    });
+                }
+                // 약속을 'trash' 폴더로 옮기기
+                await db.promise().query(`
+                    UPDATE folder_promise
+                    SET folder_id = ${trashFolderId}
+                    WHERE promise_id = ${promiseid} AND folder_id = ${meetableFolderId}
+                `);
+
+                await db.promise().query(`
+                    UPDATE memberjoin
+                    SET is_bookmark = 'F'
+                    WHERE member_id = ${memberId} AND promise_id = ${promiseid}
+                `);
+            }
 
             res.status(200).send({
                 movedtoTrash: true,
-                message: "Promise moved to trash successfully"
+                message: "Promise moved to trash successfully",
             });
         } catch (error) {
             console.log(error);
             res.status(500).send({
                 statusCode: 1234,
-                message: `Error moving promise to trash: ${error.message}`
+                message: `Error moving promise to trash: ${error.message}`,
             });
         }
     } else {
         res.status(401).send({
             statusCode: 1000,
-            message: "access denied."
+            message: "access denied.",
         });
     }
 });
 
 //휴지통 약속 가져오기
-router.get('/trash', authMember, async(req, res) => {
+router.get("/trash", authMember, async (req, res) => {
     if (req.query.sortBy === undefined) {
         res.status(400).send({
             statusCode: 1024,
-            message: "required query missed: sortBy"
-        })
+            message: "required query missed: sortBy",
+        });
     }
     if (req.isMember === true) {
         try {
@@ -275,7 +282,7 @@ router.get('/trash', authMember, async(req, res) => {
                 `);
             }
             if (trash !== undefined) {
-                const trashFormat = trash[0].map(row => ({
+                const trashFormat = trash[0].map((row) => ({
                     count: row.participant_count,
                     promiseName: row.member_promise_name,
                     promiseCode: row.promise_id + "_" + row.promise_code,
@@ -283,59 +290,64 @@ router.get('/trash', authMember, async(req, res) => {
                 res.status(200).send({
                     trash: trashFormat,
                     sortBy: req.query.sortBy,
-                    message: "trash promise list"
-                })
+                    message: "trash promise list",
+                });
             } else if (trash === undefined) {
                 res.status(200).send({
                     trash: {},
                     sortBy: req.query.sortBy,
-                    message: "trash promise list"
-                })
+                    message: "trash promise list",
+                });
             }
         } catch (err) {
             res.status(500).send({
                 statusCode: 1234,
-                message: `Error retreving promises: ${err.message}`
-            })
+                message: `Error retreving promises: ${err.message}`,
+            });
         }
     } else {
         res.status(401).send({
             statusCode: 1000,
-            message: "access denied."
+            message: "access denied.",
         });
     }
 });
 
 // 약속명 변경
-router.patch('/promisename', authMember, async(req, res) => {
+router.patch("/promisename", authMember, async (req, res) => {
     if (req.isMember === true) {
-        await db.promise().query(`
+        await db
+            .promise()
+            .query(
+                `
             UPDATE memberjoin
             SET member_promise_name = '${req.body.promiseName}'
             WHERE promise_id = ${req.body.promiseId} AND member_id = ${req.memberId}
-        `).then( () => {
-            res.status(200).send({
-                promiseNameChanged: true,
-                message: "promise name changed"
-            })
-        })
+        `
+            )
+            .then(() => {
+                res.status(200).send({
+                    promiseNameChanged: true,
+                    message: "promise name changed",
+                });
+            });
     } else {
         res.status(401).send({
             statusCode: 1000,
-            message: "access denied."
+            message: "access denied.",
         });
     }
 });
 
 // 약속/폴더 내용 검색
-router.get('/search', authMember, async(req, res) => {
+router.get("/search", authMember, async (req, res) => {
     if (req.isMember === true) {
         try {
             const searchTerm = req.query.searchTerm;
             if (!searchTerm) {
                 return res.status(400).send({
                     statusCode: 1024,
-                    message: "required query missing: searchTerm"
+                    message: "required query missing: searchTerm",
                 });
             }
 
@@ -353,58 +365,52 @@ router.get('/search', authMember, async(req, res) => {
             `);
 
             // 결과 포맷팅
-            const formattedPromises = promises[0].map(row => ({
+            const formattedPromises = promises[0].map((row) => ({
                 count: row.participant_count,
                 promiseName: row.member_promise_name,
                 promiseCode: row.promise_id + "_" + row.promise_code,
-                isBookmark: row.is_bookmark
+                isBookmark: row.is_bookmark,
             }));
 
             res.status(200).send({
                 promise: formattedPromises,
-                message: "search result"
+                message: "search result",
             });
         } catch (error) {
             res.status(500).send({
-                message: `Error searching for promises: ${error.message}`
+                message: `Error searching for promises: ${error.message}`,
             });
         }
     } else {
         res.status(401).send({
             statusCode: 1000,
-            message: "access denied."
+            message: "access denied.",
         });
     }
 });
 
-router.patch('/restore', authMember, async(req, res) => {
+router.patch("/restore", authMember, async (req, res) => {
     const isMember = req.isMember;
     if (isMember) {
         try {
             const promiseId = req.body.promiseId;
             const memberId = req.memberId;
 
-             // 'trash' 폴더에 promise_id가 존재하는지 확인
-             const [meetableExists] = await db.promise().query(`
-                SELECT fp.promise_id FROM folder f
-                JOIN folder_promise fp ON f.folder_id = fp.folder_id
-                WHERE f.member_id = ${memberId} AND f.folder_name = 'trash' AND fp.promise_id = ${promiseId}
-            `);
-         
-            if (meetableExists.length === 0) {
-                 return res.status(404).send({
-                    statusCode: 4044,
-                    message: "promise not found on trash"
+            if (!Array.isArray(promiseId)) {
+                return res.status(400).send({
+                    statusCode: 4000,
+                    message: "Invalid input: promiseIds should be an array",
                 });
             }
+
             // 사용자의 'trash' 폴더 ID 찾기
             const [findFolderResult] = await db.promise().query(`
                 SELECT folder_id FROM folder 
                 WHERE member_id = ${memberId} AND folder_name = 'trash'
             `);
 
-             // 사용자의 'meetable' 폴더 ID 찾기
-             const [findMeetable] = await db.promise().query(`
+            // 사용자의 'meetable' 폴더 ID 찾기
+            const [findMeetable] = await db.promise().query(`
                 SELECT folder_id FROM folder 
                 WHERE member_id = ${memberId} AND folder_name = 'meetable'
             `);
@@ -412,81 +418,103 @@ router.patch('/restore', authMember, async(req, res) => {
             const trashFolderId = findFolderResult[0].folder_id;
             const meetableFolderId = findMeetable[0].folder_id;
 
-            
-            // 약속을 'trash' 폴더로 옮기기
-            await db.promise().query(`
+            for (const promiseid of promiseId) {
+                // 'trash' 폴더에 promise_id가 존재하는지 확인
+                const [meetableExists] = await db.promise().query(`
+                    SELECT fp.promise_id FROM folder f
+                    JOIN folder_promise fp ON f.folder_id = fp.folder_id
+                    WHERE f.member_id = ${memberId} AND f.folder_name = 'trash' AND fp.promise_id = ${promiseid}
+                `);
+
+                if (meetableExists.length === 0) {
+                    return res.status(404).json({
+                        statusCode: 4044,
+                        message: "promise not found on trash",
+                    });
+                }
+
+                // 약속을 'meetable' 폴더로 옮기기
+                await db.promise().query(`
                 UPDATE folder_promise
                 SET folder_id = ${meetableFolderId}
-                WHERE promise_id = ${promiseId} AND folder_id = ${trashFolderId}
+                WHERE promise_id = ${promiseid} AND folder_id = ${trashFolderId}
             `);
+            }
             res.status(200).send({
                 restored: true,
-                message: "Promise restored successfully"
+                message: "Promise restored successfully",
             });
         } catch (error) {
             console.log(error);
             res.status(500).send({
                 statusCode: 1234,
-                message: `Error moving promise restoring: ${error.message}`
+                message: `Error moving promise restoring: ${error.message}`,
             });
         }
     } else {
         res.status(401).send({
             statusCode: 1000,
-            message: "access denied."
+            message: "access denied.",
         });
     }
 });
 
 // 약속에서 빠지기
 // TODO: promiseID 리스트로/ 작동은 왜 안된다 할까..
-router.delete('/backoutpromise', authMember, async(req, res) => {
+router.delete("/backoutpromise", authMember, async (req, res) => {
     const promiseId = req.body.promiseId;
     const isMember = req.isMember; // 회원 여부
 
     if (promiseId === undefined) {
-        res.status(400).send({
+        return res.status(400).json({
             statusCode: 1024,
-            message: "required body missed: promiseId"
+            message: "required body missed: promiseId",
         });
     }
-
+    if (!Array.isArray(promiseId)) {
+        return res.status(400).json({
+            statusCode: 4000,
+            message: "Invalid input: promiseIds should be an array",
+        });
+    }
     try {
-        if (isMember) {
-            const memberId = req.memberId; // 회원 ID
-            // 회원인 경우, memberjoin 테이블에서 제거
-            await db.promise().query(`
-                DELETE FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId};
-            `);
-        } else {
-            // 비회원인 경우, nonmember 테이블에서 제거
-            const nonmemberId = req.nonmemberId; // 비회원 ID
-            await db.promise().query(`
-                DELETE FROM nonmember WHERE nonmember_id = ${nonmemberId} AND promise_id = ${promiseId};
-            `);
-        }
+        for (const promiseid of promiseId) {
+            if (isMember) {
+                const memberId = req.memberId; // 회원 ID
+                // 회원인 경우, memberjoin 테이블에서 제거
+                await db.promise().query(`
+                    DELETE FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseid};
+                `);
+            } else {
+                // 비회원인 경우, nonmember 테이블에서 제거
+                const nonmemberId = req.nonmemberId; // 비회원 ID
+                await db.promise().query(`
+                    DELETE FROM nonmember WHERE nonmember_id = ${nonmemberId} AND promise_id = ${promiseid};
+                `);
+            }
 
-        // 참여자 수 확인
-        const [participants] = await db.promise().query(`
-            SELECT 
-                (SELECT COUNT(*) FROM memberjoin WHERE promise_id = ${promiseId}) +
-                (SELECT COUNT(*) FROM nonmember WHERE promise_id = ${promiseId}) AS count
-        `);
-
-        if (participants[0].count == 0) {
-            // 참여자가 1명이면 promise 삭제
-            await db.promise().query(`
-                DELETE FROM promise WHERE promise_id = ${promiseId};
+            // 참여자 수 확인
+            const [participants] = await db.promise().query(`
+                SELECT 
+                    (SELECT COUNT(*) FROM memberjoin WHERE promise_id = ${promiseid}) +
+                    (SELECT COUNT(*) FROM nonmember WHERE promise_id = ${promiseid}) AS count
             `);
+
+            if (participants[0].count == 0) {
+                // 참여자가 1명이면 promise 삭제
+                await db.promise().query(`
+                    DELETE FROM promise WHERE promise_id = ${promiseid};
+                `);
+            }
         }
         res.status(200).send({
             backedOut: true,
-            message: "successfully backed out of the promise"
+            message: "successfully backed out of the promise",
         });
     } catch (error) {
         console.log(error);
         res.status(500).send({
-            message: `Error backing out of promise: ${error.message}`
+            message: `Error backing out of promise: ${error.message}`,
         });
     }
 });
