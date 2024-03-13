@@ -76,7 +76,7 @@ router.post('/create', authMember, async(req, res) => {
     if (req.isMember === true) { //회원인 경우
         await db.promise().query(`
             INSERT INTO memberjoin(member_id, promise_id, member_promise_name, canconfirm)
-            VALUES ('${req.memberId}', '${promiseId}', '${req.body.promise_name}', 'T')
+            VALUES ('${req.memberId}', '${promiseId}', '${req.body.nickname}', 'T')
         `)
         const [resultFolder] = await db.promise().query(`
             SELECT folder_id FROM folder
@@ -196,11 +196,11 @@ router.post('/participate', authMember, async(req, res) => {
 // 회원, 비회원 나누고 요일 기준 날짜기준 시간 유무로 나눠서 처리
 // 요일 기준
 // 약속세부 저장하기
-router.post('/time', authMember, async(req, res) => {
+router.post("/time", authMember, async (req, res) => {
     const isMember = req.isMember;
     const promiseId = req.body.promiseId;
     const memberId = req.isMember ? req.memberId : req.nonmemberId;
-    const tableName = req.isMember ? 'membertime' : 'nonmembertime';
+    const tableName = req.isMember ? "membertime" : "nonmembertime";
     let status;
     try {
         // promise 테이블에서 weekvsdate, ampmvstime 값 가져오기
@@ -209,76 +209,108 @@ router.post('/time', authMember, async(req, res) => {
             FROM promise WHERE promise_id = ${promiseId};
         `);
         const { weekvsdate, ampmvstime } = promiseSettings[0];
-        if (weekvsdate === 'W' && ampmvstime === 'F') {
+        if (weekvsdate === "W" && ampmvstime === "F") {
             // 1. 가능한 요일만 저장
-            status = await saveWeekAvailable(req.body.weekAvailable, memberId, promiseId, tableName, isMember);
-        } else if (weekvsdate === 'D' && ampmvstime === 'F') {
+            status = await saveWeekAvailable(
+                req.body.weekAvailable,
+                memberId,
+                promiseId,
+                tableName,
+                isMember
+            );
+        } else if (weekvsdate === "D" && ampmvstime === "F") {
             // 2. 가능한 날짜만 저장
-            status = await saveDateAvailable(req.body.dateAvailable, memberId, promiseId, tableName, isMember);
-        } else if (weekvsdate === 'W' && ampmvstime === 'T') {
+            status = await saveDateAvailable(
+                req.body.dateAvailable,
+                memberId,
+                promiseId,
+                tableName,
+                isMember
+            );
+        } else if (weekvsdate === "W" && ampmvstime === "T") {
             // 3. 가능한 요일과 시간 저장
-            status = await saveWeekTimeAvailable(req.body.weektimeAvailable, memberId, promiseId, tableName, promiseSettings[0], isMember);
-        } else if (weekvsdate === 'D' && ampmvstime === 'T') {
+            status = await saveWeekTimeAvailable(
+                req.body.weektimeAvailable,
+                memberId,
+                promiseId,
+                tableName,
+                promiseSettings[0],
+                isMember
+            );
+        } else if (weekvsdate === "D" && ampmvstime === "T") {
             // 4. 가능한 날짜와 시간 저장
-            status = await saveDateTimeAvailable(req.body.datetimeAvailable, memberId, promiseId, tableName, promiseSettings[0], isMember);
+            status = await saveDateTimeAvailable(
+                req.body.datetimeAvailable,
+                memberId,
+                promiseId,
+                tableName,
+                promiseSettings[0],
+                isMember
+            );
         }
         if (status == 200) {
             res.status(200).send({
-                message: "time saved successfully"
+                message: "time saved successfully",
             });
         } else if (status == 1750) {
             res.status(400).send({
                 statusCode: 1750,
-                message: "wrong weekday string"
-            })
+                message: "wrong weekday string",
+            });
         } else if (status == 1751) {
             res.status(400).send({
                 statusCode: 1751,
-                message: "date out of range of promise"
-            })
+                message: "date out of range of promise",
+            });
         } else if (status == 1752) {
             res.status(400).send({
                 statusCode: 1752,
-                message: "wrong time id"
-            })
+                message: "wrong time id",
+            });
         } else if (status == 1753) {
             res.status(400).send({
                 statusCode: 1753,
-                message: "wrong time range"
-            })
+                message: "wrong time range",
+            });
         } else if (status == 1749) {
             res.status(400).send({
                 statusCode: 1749,
-                message: "try to insert duplicate week"
-            })
+                message: "try to insert duplicate week",
+            });
         } else if (status == 1748) {
             res.status(400).send({
                 statusCode: 1748,
-                message: "try to insert duplicate date"
-            })
+                message: "try to insert duplicate date",
+            });
         } else if (status == 1747) {
             res.status(400).send({
                 statusCode: 1747,
-                message: "try to insert duplicate weektime"
-            })
+                message: "try to insert duplicate weektime",
+            });
         } else if (status == 1746) {
             res.status(400).send({
                 statusCode: 1746,
-                message: "try to insert duplicate datetime"
-            })
-        } 
-        
+                message: "try to insert duplicate datetime",
+            });
+        }
     } catch (error) {
         console.log(error);
         res.status(500).send({
-            message: `Error saving time: ${error.message}`
+            statusCode: 1234,
+            message: `Error saving time: ${error.message}`,
         });
     }
 });
 
-async function saveWeekAvailable(weekAvailable, memberId, promiseId, tableName, isMember) {
+async function saveWeekAvailable(
+    weekAvailable,
+    memberId,
+    promiseId,
+    tableName,
+    isMember
+) {
     // 가능한 요일 데이터 저장
-    let statusCode = 200
+    let statusCode = 200;
     const correctString = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
     let existingWeeksQuery = "";
 
@@ -293,10 +325,10 @@ async function saveWeekAvailable(weekAvailable, memberId, promiseId, tableName, 
         existingWeeksQuery = `
             SELECT week_available FROM ${tableName}
             WHERE nonmember_id = ${memberId}
-        `
+        `;
     }
     const [existingWeeks] = await db.promise().query(existingWeeksQuery);
-    const existingWeeksArray = existingWeeks.map(item => item.week_available);
+    const existingWeeksArray = existingWeeks.map((item) => item.week_available);
 
     for (let weekday of weekAvailable) {
         if (correctString.includes(weekday)) {
@@ -308,12 +340,12 @@ async function saveWeekAvailable(weekAvailable, memberId, promiseId, tableName, 
                             (SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}),
                             '${weekday}'
                         )
-                    `); 
+                    `);
                 } else if (isMember === false) {
                     await db.promise().query(`
                         INSERT INTO ${tableName} (nonmember_id, week_available)
                         VALUES(${memberId},'${weekday}')
-                    `); 
+                    `);
                 }
             } else {
                 statusCode = 1749;
@@ -325,16 +357,22 @@ async function saveWeekAvailable(weekAvailable, memberId, promiseId, tableName, 
     return statusCode;
 }
 
-async function saveDateAvailable(dateAvailable, memberId, promiseId, tableName, isMember) {
+async function saveDateAvailable(
+    dateAvailable,
+    memberId,
+    promiseId,
+    tableName,
+    isMember
+) {
     // 해당 promise_id에 해당하는 datetomeet 값 가져오기
     const [validDates] = await db.promise().query(`
         SELECT datetomeet FROM promisedate WHERE promise_id = ${promiseId}
     `);
-    const validDatesArray = validDates.map(item => {
+    const validDatesArray = validDates.map((item) => {
         const date = new Date(item.datetomeet);
         const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0'); // getMonth()는 0부터 시작하므로 1을 더함
-        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, "0"); // getMonth()는 0부터 시작하므로 1을 더함
+        const day = String(date.getDate()).padStart(2, "0");
         return `${year}-${month}-${day}`;
     });
 
@@ -351,10 +389,10 @@ async function saveDateAvailable(dateAvailable, memberId, promiseId, tableName, 
         existingDatesQuery = `
             SELECT date_available FROM ${tableName}
             WHERE nonmember_id = ${memberId}
-        `
+        `;
     }
     const [existingDates] = await db.promise().query(existingDatesQuery);
-    const existingDatesArray = existingDates.map(item => item.date_available);
+    const existingDatesArray = existingDates.map((item) => item.date_available);
 
     let statusCode = 200;
     for (let date of dateAvailable) {
@@ -376,7 +414,7 @@ async function saveDateAvailable(dateAvailable, memberId, promiseId, tableName, 
                     `);
                 }
             } else {
-                statusCode = 1748
+                statusCode = 1748;
             }
         } else {
             statusCode = 1751;
@@ -385,7 +423,14 @@ async function saveDateAvailable(dateAvailable, memberId, promiseId, tableName, 
     return statusCode;
 }
 
-async function saveWeekTimeAvailable(weektimeAvailable, memberId, promiseId, tableName, promiseSettings, isMember) {
+async function saveWeekTimeAvailable(
+    weektimeAvailable,
+    memberId,
+    promiseId,
+    tableName,
+    promiseSettings,
+    isMember
+) {
     const { start_time, end_time } = promiseSettings;
     const correctString = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
     let statusCode = 200;
@@ -406,17 +451,20 @@ async function saveWeekTimeAvailable(weektimeAvailable, memberId, promiseId, tab
             FROM ${tableName}
             JOIN timeslot ON ${tableName}.time_id = timeslot.id
             WHERE nonmember_id = ${memberId}
-        `
+        `;
     }
-    const [existingWeektimes] = await db.promise().query(existingWeektimesQuery);
-    const existingWeektimesArray = existingWeektimes.map(item => item.weektime);
-
+    const [existingWeektimes] = await db
+        .promise()
+        .query(existingWeektimesQuery);
+    const existingWeektimesArray = existingWeektimes.map(
+        (item) => item.weektime
+    );
 
     for (let weekdaytime of weektimeAvailable) {
         // 요일, 시작 시간, 종료 시간 파싱
-        const [weekday, startTime, endTime] = weekdaytime.split(' ');
+        const [weekday, startTime, endTime] = weekdaytime.split(" ");
         if (!existingWeektimesArray.includes(weekdaytime)) {
-            if (correctString.includes(weekday)) { 
+            if (correctString.includes(weekday)) {
                 // 시간이 유효한 범위 내에 있는지 확인
                 if (startTime >= start_time && endTime <= end_time) {
                     // timeslot 테이블에서 해당 시간에 대한 time_id 찾기
@@ -424,9 +472,9 @@ async function saveWeekTimeAvailable(weektimeAvailable, memberId, promiseId, tab
                         SELECT id FROM timeslot 
                         WHERE start_time = '${startTime}' AND end_time = '${endTime}'
                     `);
-    
+
                     const timeId = timeSlot[0]?.id;
-    
+
                     if (timeId) {
                         if (isMember) {
                             await db.promise().query(`
@@ -441,7 +489,7 @@ async function saveWeekTimeAvailable(weektimeAvailable, memberId, promiseId, tab
                             await db.promise().query(`
                                 INSERT INTO ${tableName} (nonmember_id, week_available, time_id)
                                 VALUES(${memberId},'${weekday}', ${timeId})
-                            `); 
+                            `);
                         }
                     } else {
                         statusCode = 1752;
@@ -449,7 +497,6 @@ async function saveWeekTimeAvailable(weektimeAvailable, memberId, promiseId, tab
                 } else {
                     statusCode = 1753;
                 }
-            
             } else {
                 statusCode = 1750;
             }
@@ -460,17 +507,24 @@ async function saveWeekTimeAvailable(weektimeAvailable, memberId, promiseId, tab
     return statusCode;
 }
 
-async function saveDateTimeAvailable(datetimeAvailable, memberId, promiseId, tableName, promiseSettings, isMember) {
+async function saveDateTimeAvailable(
+    datetimeAvailable,
+    memberId,
+    promiseId,
+    tableName,
+    promiseSettings,
+    isMember
+) {
     const { start_time, end_time } = promiseSettings;
 
     const [validDates] = await db.promise().query(`
         SELECT datetomeet FROM promisedate WHERE promise_id = ${promiseId}
     `);
-    const validDatesArray = validDates.map(item => {
+    const validDatesArray = validDates.map((item) => {
         const date = new Date(item.datetomeet);
         const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0'); // getMonth()는 0부터 시작하므로 1을 더함
-        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, "0"); // getMonth()는 0부터 시작하므로 1을 더함
+        const day = String(date.getDate()).padStart(2, "0");
         return `${year}-${month}-${day}`;
     });
     let statusCode = 200;
@@ -491,13 +545,17 @@ async function saveDateTimeAvailable(datetimeAvailable, memberId, promiseId, tab
             FROM ${tableName}
             JOIN timeslot ON ${tableName}.time_id = timeslot.id
             WHERE nonmember_id = ${memberId}
-        `
+        `;
     }
-    const [existingDatetimes] = await db.promise().query(existingDatetimesQuery);
-    const existingDatetimesArray = existingDatetimes.map(item => item.datetime);
+    const [existingDatetimes] = await db
+        .promise()
+        .query(existingDatetimesQuery);
+    const existingDatetimesArray = existingDatetimes.map(
+        (item) => item.datetime
+    );
 
     for (let datetime of datetimeAvailable) {
-        const [date, startTime, endTime] = datetime.split(' ');
+        const [date, startTime, endTime] = datetime.split(" ");
         if (!existingDatetimesArray.includes(datetime)) {
             if (validDatesArray.includes(date)) {
                 // 시간이 유효한 범위 내에 있는지 확인
@@ -507,9 +565,9 @@ async function saveDateTimeAvailable(datetimeAvailable, memberId, promiseId, tab
                         SELECT id FROM timeslot 
                         WHERE start_time = '${startTime}' AND end_time = '${endTime}'
                     `);
-    
+
                     const timeId = timeSlot[0]?.id;
-    
+
                     if (timeId) {
                         if (isMember) {
                             await db.promise().query(`
@@ -524,7 +582,7 @@ async function saveDateTimeAvailable(datetimeAvailable, memberId, promiseId, tab
                             await db.promise().query(`
                                 INSERT INTO ${tableName} (nonmember_id, date_available, time_id)
                                 VALUES(${memberId},'${date}', ${timeId})
-                            `); 
+                            `);
                         }
                     } else {
                         statusCode = 1752;
@@ -536,93 +594,125 @@ async function saveDateTimeAvailable(datetimeAvailable, memberId, promiseId, tab
                 statusCode = 1751;
             }
         } else {
-            statusCode = 1746
+            statusCode = 1746;
         }
     }
     return statusCode;
 }
 
 // 약속세부 삭제하기
-// todo: sql 삭제하는 로직으로 변경 및 삭제 시 존재하는 데이터인지 검증하는 로직 추가 
-router.delete('/deletetime', authMember, async(req, res) => {
+// todo: sql 삭제하는 로직으로 변경 및 삭제 시 존재하는 데이터인지 검증하는 로직 추가
+router.delete("/deletetime", authMember, async (req, res) => {
     const isMember = req.isMember;
     const promiseId = req.body.promiseId;
     const memberId = req.isMember ? req.memberId : req.nonmemberId;
-    const tableName = req.isMember ? 'membertime' : 'nonmembertime';
+    const tableName = req.isMember ? "membertime" : "nonmembertime";
     let status;
-        // promise 테이블에서 weekvsdate, ampmvstime 값 가져오기
-        const [promiseSettings] = await db.promise().query(`
+    // promise 테이블에서 weekvsdate, ampmvstime 값 가져오기
+    const [promiseSettings] = await db.promise().query(`
             SELECT weekvsdate, ampmvstime, start_time, end_time 
             FROM promise WHERE promise_id = ${promiseId};
         `);
-        const { weekvsdate, ampmvstime } = promiseSettings[0];
-        if (weekvsdate === 'W' && ampmvstime === 'F') {
-            // 1. 가능한 요일만 삭제
-            status = await deleteWeekAvailable(req.body.weekToDelete, memberId, promiseId, tableName, isMember);
-        } else if (weekvsdate === 'D' && ampmvstime === 'F') {
-            // 2. 가능한 날짜만 삭제
-            status = await deleteDateAvailable(req.body.dateToDelete, memberId, promiseId, tableName, isMember);
-        } else if (weekvsdate === 'W' && ampmvstime === 'T') {
-            // 3. 가능한 요일과 시간 삭제
-            status = await deleteWeekTimeAvailable(req.body.weektimeToDelete, memberId, promiseId, tableName, promiseSettings[0], isMember);
-        } else if (weekvsdate === 'D' && ampmvstime === 'T') {
-            // 4. 가능한 날짜와 시간 삭제
-            status = await deleteDateTimeAvailable(req.body.datetimeToDelete, memberId, promiseId, tableName, promiseSettings[0], isMember);
-        }
-        if (status == 200) {
-            res.status(200).send({
-                message: "time deleted successfully"
-            });
-        } else if (status == 1750) {
-            res.status(400).send({
-                statusCode: 1750,
-                message: "wrong weekday string"
-            })
-        } else if (status == 1751) {
-            res.status(400).send({
-                statusCode: 1751,
-                message: "date out of range of promise"
-            })
-        } else if (status == 1752) {
-            res.status(400).send({
-                statusCode: 1752,
-                message: "wrong time id"
-            })
-        } else if (status == 1753) {
-            res.status(400).send({
-                statusCode: 1753,
-                message: "wrong time range"
-            })
-        } else if (status == 500) {
-            res.status(500).send({
-                message: `Error deleting time: backenderr`
-            });
-        } else if (status == 1745) {
-            res.status(400).send({
-                statusCode: 1745,
-                message: "try to delete not existing week"
-            })
-        } else if (status == 1744) {
-            res.status(400).send({
-                statusCode: 1744,
-                message: "try to delete not existing date"
-            })
-        } else if (status == 1743) {
-            res.status(400).send({
-                statusCode: 1743,
-                message: "try to delete not existing weektime"
-            })
-        } else if (status == 1742) {
-            res.status(400).send({
-                statusCode: 1742,
-                message: "try to delete not existing datetime"
-            })
-        } 
+    const { weekvsdate, ampmvstime } = promiseSettings[0];
+    if (weekvsdate === "W" && ampmvstime === "F") {
+        // 1. 가능한 요일만 삭제
+        status = await deleteWeekAvailable(
+            req.body.weekToDelete,
+            memberId,
+            promiseId,
+            tableName,
+            isMember
+        );
+    } else if (weekvsdate === "D" && ampmvstime === "F") {
+        // 2. 가능한 날짜만 삭제
+        status = await deleteDateAvailable(
+            req.body.dateToDelete,
+            memberId,
+            promiseId,
+            tableName,
+            isMember
+        );
+    } else if (weekvsdate === "W" && ampmvstime === "T") {
+        // 3. 가능한 요일과 시간 삭제
+        status = await deleteWeekTimeAvailable(
+            req.body.weektimeToDelete,
+            memberId,
+            promiseId,
+            tableName,
+            promiseSettings[0],
+            isMember
+        );
+    } else if (weekvsdate === "D" && ampmvstime === "T") {
+        // 4. 가능한 날짜와 시간 삭제
+        status = await deleteDateTimeAvailable(
+            req.body.datetimeToDelete,
+            memberId,
+            promiseId,
+            tableName,
+            promiseSettings[0],
+            isMember
+        );
+    }
+    if (status == 200) {
+        res.status(200).send({
+            message: "time deleted successfully",
+        });
+    } else if (status == 1750) {
+        res.status(400).send({
+            statusCode: 1750,
+            message: "wrong weekday string",
+        });
+    } else if (status == 1751) {
+        res.status(400).send({
+            statusCode: 1751,
+            message: "date out of range of promise",
+        });
+    } else if (status == 1752) {
+        res.status(400).send({
+            statusCode: 1752,
+            message: "wrong time id",
+        });
+    } else if (status == 1753) {
+        res.status(400).send({
+            statusCode: 1753,
+            message: "wrong time range",
+        });
+    } else if (status == 500) {
+        res.status(500).send({
+            message: `Error deleting time: backenderr`,
+        });
+    } else if (status == 1745) {
+        res.status(400).send({
+            statusCode: 1745,
+            message: "try to delete not existing week",
+        });
+    } else if (status == 1744) {
+        res.status(400).send({
+            statusCode: 1744,
+            message: "try to delete not existing date",
+        });
+    } else if (status == 1743) {
+        res.status(400).send({
+            statusCode: 1743,
+            message: "try to delete not existing weektime",
+        });
+    } else if (status == 1742) {
+        res.status(400).send({
+            statusCode: 1742,
+            message: "try to delete not existing datetime",
+        });
+    }
 });
 
-async function deleteWeekAvailable(weekToDelete, memberId, promiseId, tableName, isMember) {
+async function deleteWeekAvailable(
+    weekToDelete,
+    memberId,
+    promiseId,
+    tableName,
+    isMember
+) {
     // 가능한 요일 데이터 저장
-    let statusCode = 200
+    let statusCode = 200;
     const correctString = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
     let existingWeeksQuery = "";
 
@@ -637,10 +727,10 @@ async function deleteWeekAvailable(weekToDelete, memberId, promiseId, tableName,
         existingWeeksQuery = `
             SELECT week_available FROM ${tableName}
             WHERE nonmember_id = ${memberId}
-        `
+        `;
     }
     const [existingWeeks] = await db.promise().query(existingWeeksQuery);
-    const existingWeeksArray = existingWeeks.map(item => item.week_available);
+    const existingWeeksArray = existingWeeks.map((item) => item.week_available);
 
     try {
         for (let weekday of weekToDelete) {
@@ -654,40 +744,44 @@ async function deleteWeekAvailable(weekToDelete, memberId, promiseId, tableName,
                             JOIN memberjoin ON ${tableName}.memberjoin_id = memberjoin.memberjoin_id
                             WHERE memberjoin.member_id = ${memberId} AND memberjoin.promise_id = ${promiseId}
                             AND ${tableName}.week_available = '${weekday}';
-                        `); 
+                        `);
                     } else if (isMember === false) {
                         await db.promise().query(`
                             DELETE FROM ${tableName}
                             WHERE nonmember_id = ${memberId} AND promise_id = ${promiseId}
                             AND week_available = '${weekday}';
-                        `); 
+                        `);
                     }
-                
                 } else {
                     statusCode = 1750;
                 }
-                } else {
-                    statusCode = 1745
-                }
-            
+            } else {
+                statusCode = 1745;
+            }
         }
-    } catch(err) {
+    } catch (err) {
         console.log(err);
         statusCode = 500;
     }
     return statusCode;
 }
 
-async function deleteDateAvailable(dateToDelete, memberId, promiseId, tableName, isMember) {
+async function deleteDateAvailable(
+    dateToDelete,
+    memberId,
+    promiseId,
+    tableName,
+    isMember
+) {
     // 해당 promise_id에 해당하는 datetomeet 값 가져오기
     const [validDates] = await db.promise().query(`
         SELECT datetomeet FROM promisedate WHERE promise_id = ${promiseId}
     `);
-    const validDatesArray = validDates.map(item => {
+    const validDatesArray = validDates.map((item) => {
         const date = new Date(item.datetomeet);
         const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0'); // getMonth()는 0부터 시작하므로 1을 더함
-        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, "0"); // getMonth()는 0부터 시작하므로 1을 더함
+        const day = String(date.getDate()).padStart(2, "0");
         return `${year}-${month}-${day}`;
     });
     let statusCode = 200;
@@ -704,10 +798,10 @@ async function deleteDateAvailable(dateToDelete, memberId, promiseId, tableName,
         existingDatesQuery = `
             SELECT date_available FROM ${tableName}
             WHERE nonmember_id = ${memberId}
-        `
+        `;
     }
     const [existingDates] = await db.promise().query(existingDatesQuery);
-    const existingDatesArray = existingDates.map(item => item.date_available);
+    const existingDatesArray = existingDates.map((item) => item.date_available);
 
     try {
         for (let date of dateToDelete) {
@@ -733,17 +827,24 @@ async function deleteDateAvailable(dateToDelete, memberId, promiseId, tableName,
                     statusCode = 1751;
                 }
             } else {
-                statusCode = 1744
+                statusCode = 1744;
             }
         }
-    } catch(err) {
+    } catch (err) {
         console.log(err);
         statusCode = 500;
     }
     return statusCode;
 }
 
-async function deleteWeekTimeAvailable(weektimeToDelete, memberId, promiseId, tableName, promiseSettings, isMember) {
+async function deleteWeekTimeAvailable(
+    weektimeToDelete,
+    memberId,
+    promiseId,
+    tableName,
+    promiseSettings,
+    isMember
+) {
     const { start_time, end_time } = promiseSettings;
     const correctString = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
     let statusCode = 200;
@@ -764,16 +865,20 @@ async function deleteWeekTimeAvailable(weektimeToDelete, memberId, promiseId, ta
             FROM ${tableName}
             JOIN timeslot ON ${tableName}.time_id = timeslot.id
             WHERE nonmember_id = ${memberId}
-        `
+        `;
     }
-    const [existingWeektimes] = await db.promise().query(existingWeektimesQuery);
-    const existingWeektimesArray = existingWeektimes.map(item => item.weektime);
+    const [existingWeektimes] = await db
+        .promise()
+        .query(existingWeektimesQuery);
+    const existingWeektimesArray = existingWeektimes.map(
+        (item) => item.weektime
+    );
 
     for (let weekdaytime of weektimeToDelete) {
         // 요일, 시작 시간, 종료 시간 파싱
-        const [weekday, startTime, endTime] = weekdaytime.split(' ');
+        const [weekday, startTime, endTime] = weekdaytime.split(" ");
         if (existingWeektimesArray.includes(weekdaytime)) {
-            if (correctString.includes(weekday)) { 
+            if (correctString.includes(weekday)) {
                 // 시간이 유효한 범위 내에 있는지 확인
                 if (startTime >= start_time && endTime <= end_time) {
                     // timeslot 테이블에서 해당 시간에 대한 time_id 찾기
@@ -782,7 +887,7 @@ async function deleteWeekTimeAvailable(weektimeToDelete, memberId, promiseId, ta
                         WHERE start_time = '${startTime}' AND end_time = '${endTime}'
                     `);
                     const timeId = timeSlot[0]?.id;
-    
+
                     if (timeId) {
                         if (isMember) {
                             await db.promise().query(`
@@ -799,7 +904,7 @@ async function deleteWeekTimeAvailable(weektimeToDelete, memberId, promiseId, ta
                                 WHERE nonmember_id = ${memberId}
                                 AND week_available = '${weekday}'
                                 AND time_id = ${timeId}
-                            `); 
+                            `);
                         }
                     } else {
                         statusCode = 1752;
@@ -807,7 +912,6 @@ async function deleteWeekTimeAvailable(weektimeToDelete, memberId, promiseId, ta
                 } else {
                     statusCode = 1753;
                 }
-            
             } else {
                 statusCode = 1750;
             }
@@ -818,17 +922,24 @@ async function deleteWeekTimeAvailable(weektimeToDelete, memberId, promiseId, ta
     return statusCode;
 }
 
-async function deleteDateTimeAvailable(datetimeToDelete, memberId, promiseId, tableName, promiseSettings, isMember) {
+async function deleteDateTimeAvailable(
+    datetimeToDelete,
+    memberId,
+    promiseId,
+    tableName,
+    promiseSettings,
+    isMember
+) {
     const { start_time, end_time } = promiseSettings;
 
     const [validDates] = await db.promise().query(`
         SELECT datetomeet FROM promisedate WHERE promise_id = ${promiseId}
     `);
-    const validDatesArray = validDates.map(item => {
+    const validDatesArray = validDates.map((item) => {
         const date = new Date(item.datetomeet);
         const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0'); // getMonth()는 0부터 시작하므로 1을 더함
-        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, "0"); // getMonth()는 0부터 시작하므로 1을 더함
+        const day = String(date.getDate()).padStart(2, "0");
         return `${year}-${month}-${day}`;
     });
     let statusCode = 200;
@@ -849,14 +960,18 @@ async function deleteDateTimeAvailable(datetimeToDelete, memberId, promiseId, ta
             FROM ${tableName}
             JOIN timeslot ON ${tableName}.time_id = timeslot.id
             WHERE nonmember_id = ${memberId}
-        `
+        `;
     }
-    const [existingDatetimes] = await db.promise().query(existingDatetimesQuery);
-    const existingDatetimesArray = existingDatetimes.map(item => item.datetime);
+    const [existingDatetimes] = await db
+        .promise()
+        .query(existingDatetimesQuery);
+    const existingDatetimesArray = existingDatetimes.map(
+        (item) => item.datetime
+    );
 
     try {
         for (let datetime of datetimeToDelete) {
-            const [date, startTime, endTime] = datetime.split(' ');
+            const [date, startTime, endTime] = datetime.split(" ");
             if (existingDatetimesArray.includes(datetime)) {
                 if (validDatesArray.includes(date)) {
                     // 시간이 유효한 범위 내에 있는지 확인
@@ -866,9 +981,9 @@ async function deleteDateTimeAvailable(datetimeToDelete, memberId, promiseId, ta
                             SELECT id FROM timeslot 
                             WHERE start_time = '${startTime}' AND end_time = '${endTime}'
                         `);
-        
+
                         const timeId = timeSlot[0]?.id;
-        
+
                         if (timeId) {
                             if (isMember) {
                                 await db.promise().query(`
@@ -908,14 +1023,14 @@ async function deleteDateTimeAvailable(datetimeToDelete, memberId, promiseId, ta
     return statusCode;
 }
 
-router.get('/participants/:promiseid', authMember, async(req, res) => {
+router.get("/participants/:promiseid", authMember, async (req, res) => {
     // 해당 약속에 참여하고 있는 회원, 비회원의 목록을 반환 for 필수참여자 지정
     const promiseId = req.params.promiseid;
     if (promiseId === undefined) {
         return res.status(400).json({
             statusCode: 1800,
-            message: "promiseid is required on parameter"
-        })
+            message: "promiseid is required on parameter",
+        });
     }
 
     try {
@@ -940,33 +1055,33 @@ router.get('/participants/:promiseid', authMember, async(req, res) => {
             if (participants.length == 0) {
                 res.status(404).send({
                     statusCode: 1801,
-                    message: "no participants"
-                })
+                    message: "no participants",
+                });
             } else {
-            // 조회된 회원 및 비회원 정보 반환
+                // 조회된 회원 및 비회원 정보 반환
                 res.status(200).send(participants);
             }
         } else if (req.isMember === false) {
             res.status(403).send({
                 statusCode: 1802,
-                message: "nonmember can't use this api"
-            })
+                message: "nonmember can't use this api",
+            });
         }
     } catch (error) {
         console.error(error);
-        res.status(500).send({ 
+        res.status(500).send({
             statusCode: 1234,
-            message: "Error retrieving participants" 
+            message: "Error retrieving participants",
         });
     }
 });
 
-router.post('/link', authMember, async(req, res) => {
+router.post("/link", authMember, async (req, res) => {
     if (req.isMember === false) {
         return res.status(403).json({
             statusCode: 1802,
-            message: "nonmember can't use this api"
-        })
+            message: "nonmember can't use this api",
+        });
     } else {
         const promiseId = req.body.promiseId; // _로 parsing된 값을 보내야함
         const nickname = req.body.nickname; // 별명 또는 비회원 이름
@@ -975,16 +1090,15 @@ router.post('/link', authMember, async(req, res) => {
 
         try {
             const [promiseSettings] = await db.promise().query(`
-                SELECT weekvsdate, ampmvstime FROM promise WHERE promise_id = ${promiseId}`
-            );
+                SELECT weekvsdate, ampmvstime FROM promise WHERE promise_id = ${promiseId}`);
 
             if (promiseSettings.length === 0) {
-                return res.status(404).send({ 
+                return res.status(404).send({
                     statusCode: 1809,
-                    message: "promise not found." 
+                    message: "promise not found.",
                 });
             }
-    
+
             const { weekvsdate, ampmvstime } = promiseSettings[0];
 
             const [nonMember] = await db.promise().query(`
@@ -995,32 +1109,32 @@ router.post('/link', authMember, async(req, res) => {
             if (nonMember.length === 0) {
                 return res.status(404).json({
                     statusCode: 1810,
-                    message: "No nonmember for this info"
-                })
+                    message: "No nonmember for this info",
+                });
             }
 
             const nonmemberId = nonMember[0].nonmember_id;
 
             // nonmembertime 정보를 membertime으로 옮기기
-            if (weekvsdate === 'W' && ampmvstime === 'F') {
+            if (weekvsdate === "W" && ampmvstime === "F") {
                 await db.promise().query(`
                     INSERT INTO membertime (memberjoin_id, week_available)
                     SELECT (SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}), week_available
                     FROM nonmembertime WHERE nonmember_id = ${nonmemberId}
                 `);
-            } else if (weekvsdate === 'D' && ampmvstime === 'F') {
+            } else if (weekvsdate === "D" && ampmvstime === "F") {
                 await db.promise().query(`
                     INSERT INTO membertime (memberjoin_id, date_available)
                     SELECT (SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}), date_available
                     FROM nonmembertime WHERE nonmember_id = ${nonmemberId}
                 `);
-            } else if (weekvsdate === 'W' && ampmvstime === 'T') {
+            } else if (weekvsdate === "W" && ampmvstime === "T") {
                 await db.promise().query(`
                     INSERT INTO membertime (memberjoin_id, week_available, time_id)
                     SELECT (SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}), week_available, time_id
                     FROM nonmembertime WHERE nonmember_id = ${nonmemberId}
                 `);
-            } else if (weekvsdate === 'D' && ampmvstime === 'T') {
+            } else if (weekvsdate === "D" && ampmvstime === "T") {
                 await db.promise().query(`
                     INSERT INTO membertime (memberjoin_id, date_available, time_id)
                     SELECT (SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}), date_available, time_id
@@ -1029,39 +1143,57 @@ router.post('/link', authMember, async(req, res) => {
             }
 
             // 옮긴 후, nonmembertime 및 nonmember 정보 삭제
-            await db.promise().query(`DELETE FROM nonmembertime WHERE nonmember_id = ${nonmemberId}`);
-            await db.promise().query(`DELETE FROM nonmember WHERE nonmember_id = ${nonmemberId}`);
+            await db
+                .promise()
+                .query(
+                    `DELETE FROM nonmembertime WHERE nonmember_id = ${nonmemberId}`
+                );
+            await db
+                .promise()
+                .query(
+                    `DELETE FROM nonmember WHERE nonmember_id = ${nonmemberId}`
+                );
 
             res.status(200).send({
                 deletednonmemberid: nonmemberId,
-                message: "successfully link nonmember info to member"
-            })
+                message: "successfully link nonmember info to member",
+            });
         } catch (err) {
             console.log(err);
-            res.status(500).send({ message: "Error linking non-member information." });
+            res.status(500).send({
+                statusCode: 1234,
+                message: "Error linking non-member information.",
+            });
         }
     }
 });
 
-router.get('/baseinfo/:promiseid', authMember, async(req, res) => {
+router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
     const promiseId = req.params.promiseid;
     const queryMonth = req.query.month;
-    const queryDate = req.query.date || new Date().toISOString().split('T')[0]; // 날짜 쿼리가 없으면 오늘 날짜 사용(2024-03-11) 
+    const queryDate = req.query.date || new Date().toISOString().split("T")[0]; // 날짜 쿼리가 없으면 오늘 날짜 사용(2024-03-11)
     try {
         const [promise] = await db.promise().query(`
             SELECT promise_name, weekvsdate, ampmvstime, start_time, end_time, canallconfirm 
             FROM promise
             WHERE promise_id = ${promiseId}
-        `)
+        `);
 
         if (promise.length === 0) {
             return res.status(404).json({
                 statusCode: 1809,
-                message: "Promise not found"
-            })
+                message: "Promise not found",
+            });
         }
 
-        const { promise_name, weekvsdate, ampmvstime, start_time, end_time, canallconfirm} = promise[0];
+        const {
+            promise_name,
+            weekvsdate,
+            ampmvstime,
+            start_time,
+            end_time,
+            canallconfirm,
+        } = promise[0];
         const weekdays = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
         const [memberCount] = await db.promise().query(`
             SELECT COUNT(*) AS count FROM memberjoin WHERE promise_id = ${promiseId}
@@ -1070,11 +1202,18 @@ router.get('/baseinfo/:promiseid', authMember, async(req, res) => {
         const [nonMemberCount] = await db.promise().query(`
             SELECT COUNT(*) AS count FROM nonmember WHERE promise_id = ${promiseId}
         `);
-        const totalParticipants = memberCount[0].count + nonMemberCount[0].count;
+        const totalParticipants =
+            memberCount[0].count + nonMemberCount[0].count;
 
-        if (weekvsdate === 'W' && ampmvstime === 'F') {
+        if (weekvsdate === "W" && ampmvstime === "F") {
             let countByWeekday = {
-                "SUN": 0, "MON": 0, "TUE": 0, "WED": 0, "THU": 0, "FRI": 0, "SAT": 0
+                SUN: 0,
+                MON: 0,
+                TUE: 0,
+                WED: 0,
+                THU: 0,
+                FRI: 0,
+                SAT: 0,
             };
 
             for (const weekday of weekdays) {
@@ -1085,17 +1224,18 @@ router.get('/baseinfo/:promiseid', authMember, async(req, res) => {
                         SELECT memberjoin_id FROM memberjoin WHERE promise_id = ${promiseId}
                     )
                     AND week_available = '${weekday}'
-                `)
-                
+                `);
+
                 const [nonMemberCounts] = await db.promise().query(`
                     SELECT COUNT(*) AS count 
                     FROM nonmembertime 
                     WHERE nonmember_id IN (
                         SELECT nonmember_id FROM nonmember WHERE promise_id = ${promiseId}
                     ) AND week_available = '${weekday}'
-                `)
+                `);
                 // 회원 및 비회원의 수를 합산
-                countByWeekday[weekday] = memberCounts[0].count + nonMemberCounts[0].count
+                countByWeekday[weekday] =
+                    memberCounts[0].count + nonMemberCounts[0].count;
             }
             // 최종 응답 객체 생성
             const responseObject = {
@@ -1104,12 +1244,11 @@ router.get('/baseinfo/:promiseid', authMember, async(req, res) => {
                 ampmvstime: ampmvstime,
                 canallconfirm: canallconfirm,
                 total: totalParticipants,
-                count: countByWeekday
+                count: countByWeekday,
             };
             // 결과 반환
             return res.status(200).json(responseObject);
-
-        } else if (weekvsdate === 'W' && ampmvstime === 'T') {
+        } else if (weekvsdate === "W" && ampmvstime === "T") {
             let countByWeekdayAndTime = {};
             const [timeslots] = await db.promise().query(`
                 SELECT id, start_time, end_time FROM timeslot
@@ -1135,7 +1274,9 @@ router.get('/baseinfo/:promiseid', authMember, async(req, res) => {
                         ) AND week_available = '${weekday}' AND time_id = ${timeslot.id}
                     `);
 
-                    countByWeekdayAndTime[weekday][`${timeslot.start_time} ${timeslot.end_time}`] = memberCounts[0].count + nonMemberCounts[0].count
+                    countByWeekdayAndTime[weekday][
+                        `${timeslot.start_time} ${timeslot.end_time}`
+                    ] = memberCounts[0].count + nonMemberCounts[0].count;
                 }
             }
             // 최종 응답 객체 생성
@@ -1145,33 +1286,48 @@ router.get('/baseinfo/:promiseid', authMember, async(req, res) => {
                 ampmvstime: ampmvstime,
                 canallconfirm: canallconfirm,
                 total: totalParticipants,
-                count: countByWeekdayAndTime
+                count: countByWeekdayAndTime,
             };
             // 결과 반환
             return res.status(200).json(responseObject);
+        } else if (weekvsdate === "D" && ampmvstime === "F") {
+            // 쿼리에서 월을 받거나 기본값으로 이번 달을 사용
+            const targetMonth = queryMonth
+                ? new Date(`${queryMonth}-01`)
+                : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+            const nextMonth = new Date(
+                targetMonth.getFullYear(),
+                targetMonth.getMonth() + 1,
+                1
+            );
 
-        } else if (weekvsdate === 'D' && ampmvstime === 'F') {
-             // 쿼리에서 월을 받거나 기본값으로 이번 달을 사용
-            const targetMonth = queryMonth ? new Date(`${queryMonth}-01`) : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-            const nextMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 1);
-            
             let countByDate = {};
 
-            const targetMonthString = `${targetMonth.getFullYear()}-${String(targetMonth.getMonth() + 1).padStart(2, '0')}-${String(targetMonth.getDate()).padStart(2, '0')}`;
-            const nextMonthString = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, '0')}-${String(nextMonth.getDate()).padStart(2, '0')}`;
-            
+            const targetMonthString = `${targetMonth.getFullYear()}-${String(
+                targetMonth.getMonth() + 1
+            ).padStart(2, "0")}-${String(targetMonth.getDate()).padStart(
+                2,
+                "0"
+            )}`;
+            const nextMonthString = `${nextMonth.getFullYear()}-${String(
+                nextMonth.getMonth() + 1
+            ).padStart(2, "0")}-${String(nextMonth.getDate()).padStart(
+                2,
+                "0"
+            )}`;
+
             const [dates] = await db.promise().query(`
                     SELECT datetomeet FROM promisedate
                     WHERE promise_id = ${promiseId} AND datetomeet > '${targetMonthString}' AND datetomeet <= '${nextMonthString}'
             `);
-            dates.forEach(dateObj => {
+            dates.forEach((dateObj) => {
                 const date = new Date(dateObj.datetomeet);
                 date.setDate(date.getDate() + 1);
-                dateObj.datetomeet = date.toISOString().split('T')[0];  // YYYY-MM-DD 형식으로 변환
+                dateObj.datetomeet = date.toISOString().split("T")[0]; // YYYY-MM-DD 형식으로 변환
             });
-            
+
             for (const date of dates) {
-                console.log(date.datetomeet)
+                console.log(date.datetomeet);
                 const [memberCounts] = await db.promise().query(`
                     SELECT COUNT(*) AS count
                     FROM membertime
@@ -1188,8 +1344,8 @@ router.get('/baseinfo/:promiseid', authMember, async(req, res) => {
                     ) AND date_available = '${date.datetomeet}'
                 `);
 
-                countByDate[date.datetomeet] = memberCounts[0].count + nonMemberCounts[0].count;
-
+                countByDate[date.datetomeet] =
+                    memberCounts[0].count + nonMemberCounts[0].count;
             }
             // 최종 응답 객체 생성
             const responseObject = {
@@ -1198,31 +1354,48 @@ router.get('/baseinfo/:promiseid', authMember, async(req, res) => {
                 ampmvstime: ampmvstime,
                 canallconfirm: canallconfirm,
                 total: totalParticipants,
-                count: countByDate
+                count: countByDate,
             };
             // 결과 반환
             return res.status(200).json(responseObject);
-        } else if (weekvsdate === 'D' && ampmvstime === 'T') {
-            
+        } else if (weekvsdate === "D" && ampmvstime === "T") {
             const targetDate = new Date(queryDate);
-            const targetMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
-            const nextMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 1);
+            const targetMonth = new Date(
+                targetDate.getFullYear(),
+                targetDate.getMonth(),
+                1
+            );
+            const nextMonth = new Date(
+                targetMonth.getFullYear(),
+                targetMonth.getMonth() + 1,
+                1
+            );
 
-            const targetMonthString = `${targetMonth.getFullYear()}-${String(targetMonth.getMonth() + 1).padStart(2, '0')}-${String(targetMonth.getDate()).padStart(2, '0')}`;
-            const nextMonthString = `${nextMonth.getFullYear()}-${String(nextMonth.getMonth() + 1).padStart(2, '0')}-${String(nextMonth.getDate()).padStart(2, '0')}`;
+            const targetMonthString = `${targetMonth.getFullYear()}-${String(
+                targetMonth.getMonth() + 1
+            ).padStart(2, "0")}-${String(targetMonth.getDate()).padStart(
+                2,
+                "0"
+            )}`;
+            const nextMonthString = `${nextMonth.getFullYear()}-${String(
+                nextMonth.getMonth() + 1
+            ).padStart(2, "0")}-${String(nextMonth.getDate()).padStart(
+                2,
+                "0"
+            )}`;
 
             const [dates] = await db.promise().query(`
                 SELECT datetomeet FROM promisedate
                 WHERE promise_id = ${promiseId} AND datetomeet >= '${targetMonthString}' AND datetomeet < '${nextMonthString}'
             `);
-            
-            dates.forEach(dateObj => {
+
+            dates.forEach((dateObj) => {
                 const date = new Date(dateObj.datetomeet);
                 date.setDate(date.getDate() + 1);
-                dateObj.datetomeet = date.toISOString().split('T')[0];  // YYYY-MM-DD 형식으로 변환
+                dateObj.datetomeet = date.toISOString().split("T")[0]; // YYYY-MM-DD 형식으로 변환
             });
-            
-            let monthData = dates.map(date => date.datetomeet);
+
+            let monthData = dates.map((date) => date.datetomeet);
 
             // 해당 주의 시간 정보 조회
             const dayOfWeek = targetDate.getDay();
@@ -1237,8 +1410,12 @@ router.get('/baseinfo/:promiseid', authMember, async(req, res) => {
                 WHERE start_time >= '${start_time}' AND end_time <= '${end_time}' ORDER BY start_time ASC
             `);
 
-            for (let d = new Date(startOfWeek); d <= endOfWeek; d.setDate(d.getDate() + 1)) {
-                const dateString = d.toISOString().split('T')[0];
+            for (
+                let d = new Date(startOfWeek);
+                d <= endOfWeek;
+                d.setDate(d.getDate() + 1)
+            ) {
+                const dateString = d.toISOString().split("T")[0];
                 countByDateAndTime[dateString] = {};
 
                 for (const timeslot of timeslots) {
@@ -1259,7 +1436,9 @@ router.get('/baseinfo/:promiseid', authMember, async(req, res) => {
                         ) AND date_available = '${dateString}' AND time_id = ${timeslot.id}
                     `);
 
-                    countByDateAndTime[dateString][`${timeslot.start_time} ${timeslot.end_time}`] = memberCounts[0].count + nonMemberCounts[0].count
+                    countByDateAndTime[dateString][
+                        `${timeslot.start_time} ${timeslot.end_time}`
+                    ] = memberCounts[0].count + nonMemberCounts[0].count;
                 }
             }
             // 최종 응답 객체 생성
@@ -1270,7 +1449,7 @@ router.get('/baseinfo/:promiseid', authMember, async(req, res) => {
                 canallconfirm: canallconfirm,
                 total: totalParticipants,
                 availableDates: monthData,
-                count: countByDateAndTime
+                count: countByDateAndTime,
             };
             // 결과 반환
             return res.status(200).json(responseObject);
@@ -1278,21 +1457,151 @@ router.get('/baseinfo/:promiseid', authMember, async(req, res) => {
     } catch (err) {
         console.log(err);
         res.status(500).send({
-            message: "Error retrieving base promise information"
-        })
+            statusCode: 1234,
+            message: "Error retrieving base promise information",
+        });
     }
 });
 
-router.get('/filterinfo/:promiseid', authMember, async(req, res) => {
-    
+router.get("/hover/:promiseid", authMember, async (req, res) => {
+    const promiseId = req.params.promiseid;
+    const weekday = req.query.weekday;
+    const date = req.query.date;
+    const startTime = req.query.starttime;
+    const endTime = req.query.endtime;
+
+    try {
+        // promise의 weekvsdate 및 ampmvstime 값 가져오기
+        const [promise] = await db.promise().query(`
+            SELECT weekvsdate, ampmvstime
+            FROM promise
+            WHERE promise_id = ${promiseId}
+        `);
+
+        if (promise.length === 0) {
+            return res.status(404).json({
+                statusCode: 4044,
+                message: "promise not found.",
+            });
+        }
+
+        const { weekvsdate, ampmvstime } = promise[0];
+
+        if (weekvsdate === "W" && ampmvstime === "F" && weekday) {
+            participants = await db.promise().query(
+                `
+                SELECT member_name FROM member
+                JOIN memberjoin ON member.member_id = memberjoin.member_id
+                JOIN membertime ON memberjoin.memberjoin_id = membertime.memberjoin_id
+                WHERE memberjoin.promise_id = ? AND membertime.week_available = ?
+                UNION
+                SELECT nonmember_name FROM nonmember
+                JOIN nonmembertime ON nonmember.nonmember_id = nonmembertime.nonmember_id
+                WHERE nonmembertime.promise_id = ? AND nonmembertime.week_available = ?
+            `,
+                [promiseId, weekday, promiseId, weekday]
+            );
+        } else if (
+            weekvsdate === "W" &&
+            ampmvstime === "T" &&
+            weekday &&
+            startTime &&
+            endTime
+        ) {
+            participants = await db.promise().query(
+                `
+                SELECT member_name FROM member
+                JOIN memberjoin ON member.member_id = memberjoin.member_id
+                JOIN membertime ON memberjoin.memberjoin_id = membertime.memberjoin_id
+                JOIN timeslot ON membertime.time_id = timeslot.id
+                WHERE memberjoin.promise_id = ? AND membertime.week_available = ? AND timeslot.start_time = ? AND timeslot.end_time = ?
+                UNION
+                SELECT nonmember_name FROM nonmember
+                JOIN nonmembertime ON nonmember.nonmember_id = nonmembertime.nonmember_id
+                JOIN timeslot ON nonmembertime.time_id = timeslot.id
+                WHERE nonmembertime.promise_id = ? AND nonmembertime.week_available = ? AND timeslot.start_time = ? AND timeslot.end_time = ?
+            `,
+                [
+                    promiseId,
+                    weekday,
+                    startTime,
+                    endTime,
+                    promiseId,
+                    weekday,
+                    startTime,
+                    endTime,
+                ]
+            );
+        } else if (weekvsdate === "D" && ampmvstime === "F" && date) {
+            participants = await db.promise().query(
+                `
+                SELECT member_name FROM member
+                JOIN memberjoin ON member.member_id = memberjoin.member_id
+                JOIN membertime ON memberjoin.memberjoin_id = membertime.memberjoin_id
+                WHERE memberjoin.promise_id = ? AND membertime.date_available = ?
+                UNION
+                SELECT nonmember_name FROM nonmember
+                JOIN nonmembertime ON nonmember.nonmember_id = nonmembertime.nonmember_id
+                WHERE nonmembertime.promise_id = ? AND nonmembertime.date_available = ?
+            `,
+                [promiseId, date, promiseId, date]
+            );
+        } else if (
+            weekvsdate === "D" &&
+            ampmvstime === "T" &&
+            date &&
+            startTime &&
+            endTime
+        ) {
+            // 날짜 및 시간대 기반 참여자 조회
+            participants = await db.promise().query(
+                `
+                SELECT member_name FROM member
+                JOIN memberjoin ON member.member_id = memberjoin.member_id
+                JOIN membertime ON memberjoin.memberjoin_id = membertime.memberjoin_id
+                JOIN timeslot ON membertime.time_id = timeslot.id
+                WHERE memberjoin.promise_id = ? AND membertime.date_available = ? AND timeslot.start_time = ? AND timeslot.end_time = ?
+                UNION
+                SELECT nonmember_name FROM nonmember
+                JOIN nonmembertime ON nonmember.nonmember_id = nonmembertime.nonmember_id
+                JOIN timeslot ON nonmembertime.time_id = timeslot.id
+                WHERE nonmembertime.promise_id = ? AND nonmembertime.date_available = ? AND timeslot.start_time = ? AND timeslot.end_time = ?
+            `,
+                [
+                    promiseId,
+                    date,
+                    startTime,
+                    endTime,
+                    promiseId,
+                    date,
+                    startTime,
+                    endTime,
+                ]
+            );
+        } else {
+            return res.status(400).json({
+                statusCode: 4000,
+                message: "invalid query parameters for the promise settings.",
+            });
+        }
+        res.status(200).json({
+            participants: participants[0].map(
+                (p) => p.member_name || p.nonmember_name
+            ),
+        });
+    } catch (err) {
+        console.log(err);
+        res.status(500).send({
+            statusCode: 1234,
+            message: `Error retrieving participants: ${err.message}`,
+        });
+    }
 });
 
-router.post('/confirm', authMember, async(req, res) => {
-    
-});
+router.get("/filterinfo/:promiseid", authMember, async (req, res) => {});
 
-router.get('/hover/:promiseid', authMember, async(req, res) => {
+router.post("/confirm", authMember, async (req, res) => {});
 
-});
+
 
 module.exports = router;
