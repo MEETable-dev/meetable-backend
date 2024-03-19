@@ -705,9 +705,9 @@
                       "type": "integer"
                   },
                   {
-                      "name": "month",
+                      "name": "weekday",
                       "in": "query",
-                      "description": "날짜기준, 시간 선택 x시 해당하는 월을 2024-02의 형태로 전달 없을 경우 이번달",
+                      "description": "MON, TUE, ... 등의 형식으로 주기 (요일 기준인 경우)",
                       "schema": {
                           "type": "string"
                       }
@@ -715,7 +715,23 @@
                   {
                       "name": "date",
                       "in": "query",
-                      "description": "날짜기준, 시간 선택 O시 해당하는 날짜를 2024-03-11의 형태로 전달 없을 경우 오늘 날짜",
+                      "description": "2024-02-11의 형식으로 전달 (날짜기준인 경우)",
+                      "schema": {
+                          "type": "string"
+                      }
+                  },
+                  {
+                      "name": "starttime",
+                      "in": "query",
+                      "description": "00:00:00의 형식으로 전달(시간 o인 경우)",
+                      "schema": {
+                          "type": "string"
+                      }
+                  },
+                  {
+                      "name": "endtime",
+                      "in": "query",
+                      "description": "11:00:00의 형식으로 전달(시간 o인 경우)",
                       "schema": {
                           "type": "string"
                       }
@@ -728,6 +744,36 @@
                   },
                   "404": {
                       "description": "promise not found"
+                  },
+                  "500": {
+                      "description": "Internal Server Error"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/promise/isparticipate/{promiseid}": {
+          "get": {
+              "tags": ["promise"],
+              "parameters": [
+                  {
+                      "name": "promiseid",
+                      "in": "path",
+                      "required": true,
+                      "type": "integer"
+                  }
+              ],
+              "description": "약속정보 반환",
+              "responses": {
+                  "200": {
+                      "description": "참여 중/미참여 중"
+                  },
+                  "401": {
+                      "description": "member only"
                   },
                   "500": {
                       "description": "Internal Server Error"

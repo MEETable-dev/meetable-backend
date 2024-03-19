@@ -1490,14 +1490,15 @@ router.get("/hover/:promiseid", authMember, async (req, res) => {
         if (weekvsdate === "W" && ampmvstime === "F" && weekday) {
             participants = await db.promise().query(
                 `
-                SELECT member_name FROM member
-                JOIN memberjoin ON member.member_id = memberjoin.member_id
-                JOIN membertime ON memberjoin.memberjoin_id = membertime.memberjoin_id
-                WHERE memberjoin.promise_id = ? AND membertime.week_available = ?
+                SELECT mj.member_promise_name AS name
+                FROM memberjoin mj
+                JOIN membertime mt ON mj.memberjoin_id = mt.memberjoin_id
+                WHERE mj.promise_id = ? AND mt.week_available = ?
                 UNION
-                SELECT nonmember_name FROM nonmember
-                JOIN nonmembertime ON nonmember.nonmember_id = nonmembertime.nonmember_id
-                WHERE nonmembertime.promise_id = ? AND nonmembertime.week_available = ?
+                SELECT nm.nonmember_name AS name
+                FROM nonmembertime nmt
+                JOIN nonmember nm ON nmt.nonmember_id = nm.nonmember_id
+                WHERE nm.promise_id = ? AND nmt.week_available = ?
             `,
                 [promiseId, weekday, promiseId, weekday]
             );
@@ -1510,16 +1511,17 @@ router.get("/hover/:promiseid", authMember, async (req, res) => {
         ) {
             participants = await db.promise().query(
                 `
-                SELECT member_name FROM member
-                JOIN memberjoin ON member.member_id = memberjoin.member_id
-                JOIN membertime ON memberjoin.memberjoin_id = membertime.memberjoin_id
-                JOIN timeslot ON membertime.time_id = timeslot.id
-                WHERE memberjoin.promise_id = ? AND membertime.week_available = ? AND timeslot.start_time = ? AND timeslot.end_time = ?
+                SELECT mj.member_promise_name AS name
+                FROM memberjoin mj
+                JOIN membertime mt ON mj.memberjoin_id = mt.memberjoin_id
+                JOIN timeslot ts ON mt.time_id = ts.id
+                WHERE mj.promise_id = ? AND mt.week_available = ? AND ts.start_time = ? AND ts.end_time = ?
                 UNION
-                SELECT nonmember_name FROM nonmember
-                JOIN nonmembertime ON nonmember.nonmember_id = nonmembertime.nonmember_id
-                JOIN timeslot ON nonmembertime.time_id = timeslot.id
-                WHERE nonmembertime.promise_id = ? AND nonmembertime.week_available = ? AND timeslot.start_time = ? AND timeslot.end_time = ?
+                SELECT nm.nonmember_name AS name
+                FROM nonmembertime nmt
+                JOIN nonmember nm ON nmt.nonmember_id = nm.nonmember_id
+                JOIN timeslot ts ON nmt.time_id = ts.id
+                WHERE nm.promise_id = ? AND nmt.week_available = ? AND ts.start_time = ? AND ts.end_time = ?
             `,
                 [
                     promiseId,
@@ -1535,14 +1537,15 @@ router.get("/hover/:promiseid", authMember, async (req, res) => {
         } else if (weekvsdate === "D" && ampmvstime === "F" && date) {
             participants = await db.promise().query(
                 `
-                SELECT member_name FROM member
-                JOIN memberjoin ON member.member_id = memberjoin.member_id
-                JOIN membertime ON memberjoin.memberjoin_id = membertime.memberjoin_id
-                WHERE memberjoin.promise_id = ? AND membertime.date_available = ?
+                SELECT mj.member_promise_name AS name
+                FROM memberjoin mj
+                JOIN membertime mt ON mj.memberjoin_id = mt.memberjoin_id
+                WHERE mj.promise_id = ? AND mt.date_available = ?
                 UNION
-                SELECT nonmember_name FROM nonmember
-                JOIN nonmembertime ON nonmember.nonmember_id = nonmembertime.nonmember_id
-                WHERE nonmembertime.promise_id = ? AND nonmembertime.date_available = ?
+                SELECT nm.nonmember_name AS name
+                FROM nonmembertime nmt
+                JOIN nonmember nm ON nmt.nonmember_id = nm.nonmember_id
+                WHERE nm.promise_id = ? AND nmt.date_available = ?
             `,
                 [promiseId, date, promiseId, date]
             );
@@ -1553,19 +1556,19 @@ router.get("/hover/:promiseid", authMember, async (req, res) => {
             startTime &&
             endTime
         ) {
-            // 날짜 및 시간대 기반 참여자 조회
             participants = await db.promise().query(
                 `
-                SELECT member_name FROM member
-                JOIN memberjoin ON member.member_id = memberjoin.member_id
-                JOIN membertime ON memberjoin.memberjoin_id = membertime.memberjoin_id
-                JOIN timeslot ON membertime.time_id = timeslot.id
-                WHERE memberjoin.promise_id = ? AND membertime.date_available = ? AND timeslot.start_time = ? AND timeslot.end_time = ?
+                SELECT mj.member_promise_name AS name
+                FROM memberjoin mj
+                JOIN membertime mt ON mj.memberjoin_id = mt.memberjoin_id
+                JOIN timeslot ts ON mt.time_id = ts.id
+                WHERE mj.promise_id = ? AND mt.date_available = ? AND ts.start_time = ? AND ts.end_time = ?
                 UNION
-                SELECT nonmember_name FROM nonmember
-                JOIN nonmembertime ON nonmember.nonmember_id = nonmembertime.nonmember_id
-                JOIN timeslot ON nonmembertime.time_id = timeslot.id
-                WHERE nonmembertime.promise_id = ? AND nonmembertime.date_available = ? AND timeslot.start_time = ? AND timeslot.end_time = ?
+                SELECT nm.nonmember_name AS name
+                FROM nonmembertime nmt
+                JOIN nonmember nm ON nmt.nonmember_id = nm.nonmember_id
+                JOIN timeslot ts ON nmt.time_id = ts.id
+                WHERE nm.promise_id = ? AND nmt.date_available = ? AND ts.start_time = ? AND ts.end_time = ?
             `,
                 [
                     promiseId,
@@ -1584,10 +1587,9 @@ router.get("/hover/:promiseid", authMember, async (req, res) => {
                 message: "invalid query parameters for the promise settings.",
             });
         }
+        console.log(participants);
         res.status(200).json({
-            participants: participants[0].map(
-                (p) => p.member_name || p.nonmember_name
-            ),
+            participants: participants[0].map((p) => p.name),
         });
     } catch (err) {
         console.log(err);
@@ -1602,6 +1604,42 @@ router.get("/filterinfo/:promiseid", authMember, async (req, res) => {});
 
 router.post("/confirm", authMember, async (req, res) => {});
 
+router.get("/isparticipate/:promiseid", authMember, async (req, res) => {
+    if (req.isMember === false) {
+        return res.status(401).json({
+            statusCode: 1000,
+            message: "Access denied. Only members can check participation.",
+        });
+    }
+
+    const promiseId = req.params.promiseid;
+    const memberId = req.memberId;
+
+    try {
+        const [participation] = await db.promise().query(
+            `
+            SELECT * FROM memberjoin 
+            WHERE member_id = ? AND promise_id = ?
+        `,
+            [memberId, promiseId]
+        );
+
+        const isParticipating = participation.length > 0;
+
+        res.status(200).json({
+            isParticipating,
+            message: isParticipating
+                ? "Member is participating in the promise."
+                : "Member is not participating in the promise.",
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            statusCode: 1234,
+            message: `Error checking participation: ${error.message}`,
+        });
+    }
+});
 
 
 module.exports = router;
