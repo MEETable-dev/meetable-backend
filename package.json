@@ -3,12 +3,9 @@
     "version": "1.0.0",
     "description": "",
     "main": "server.js",
-    "engines": {
-        "node": "18.13.0"
-    },
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "start": "nodemon server",
+        "start": "nod server.js",
         "swagger-autogen": "node ./swagger.js"
     },
     "repository": {
@@ -38,7 +35,7 @@
         "redis": "^4.6.10"
     },
     "devDependencies": {
-        "nodemon": "^3.0.1",
+        "nodemon": "^2.0.9",
         "swagger-autogen": "^2.23.7",
         "swagger-ui-express": "^5.0.0"
     }
