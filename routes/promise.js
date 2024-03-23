@@ -129,7 +129,7 @@ router.post('/participate', authMember, async(req, res) => {
             const canConfirm = promiseResult[0].canallconfirm;
              // memberjoin 테이블에 참여 정보 추가
              await db.promise().query(`
-                INSERT INTO memberjoin (member_id, promise_id, member_promise_name, canconfirm)
+                INSERT INTO memberjoin (member_id, promise_id, member_nickname, canconfirm)
                 VALUES (${req.memberId}, ${promiseId}, '${nickname}', '${canConfirm}');
             `);
             const [resultFolder] = await db.promise().query(`
@@ -1043,7 +1043,7 @@ router.get("/participants/:promiseid", authMember, async (req, res) => {
 
             // 해당 약속에 참여하고 있는 회원 정보 조회
             const [members] = await db.promise().query(`
-                SELECT member.member_id AS id, memberjoin.member_promise_name AS name, 'member' AS type
+                SELECT member.member_id AS id, memberjoin.member_nickname AS name, 'member' AS type
                 FROM memberjoin
                 JOIN member ON memberjoin.member_id = member.member_id
                 WHERE memberjoin.promise_id = ${promiseId}
@@ -1490,7 +1490,7 @@ router.get("/hover/:promiseid", authMember, async (req, res) => {
         if (weekvsdate === "W" && ampmvstime === "F" && weekday) {
             participants = await db.promise().query(
                 `
-                SELECT mj.member_promise_name AS name
+                SELECT mj.member_nickname AS name
                 FROM memberjoin mj
                 JOIN membertime mt ON mj.memberjoin_id = mt.memberjoin_id
                 WHERE mj.promise_id = ? AND mt.week_available = ?
@@ -1511,7 +1511,7 @@ router.get("/hover/:promiseid", authMember, async (req, res) => {
         ) {
             participants = await db.promise().query(
                 `
-                SELECT mj.member_promise_name AS name
+                SELECT mj.member_nickname AS name
                 FROM memberjoin mj
                 JOIN membertime mt ON mj.memberjoin_id = mt.memberjoin_id
                 JOIN timeslot ts ON mt.time_id = ts.id
@@ -1537,7 +1537,7 @@ router.get("/hover/:promiseid", authMember, async (req, res) => {
         } else if (weekvsdate === "D" && ampmvstime === "F" && date) {
             participants = await db.promise().query(
                 `
-                SELECT mj.member_promise_name AS name
+                SELECT mj.member_nickname AS name
                 FROM memberjoin mj
                 JOIN membertime mt ON mj.memberjoin_id = mt.memberjoin_id
                 WHERE mj.promise_id = ? AND mt.date_available = ?
@@ -1558,7 +1558,7 @@ router.get("/hover/:promiseid", authMember, async (req, res) => {
         ) {
             participants = await db.promise().query(
                 `
-                SELECT mj.member_promise_name AS name
+                SELECT mj.member_nickname AS name
                 FROM memberjoin mj
                 JOIN membertime mt ON mj.memberjoin_id = mt.memberjoin_id
                 JOIN timeslot ts ON mt.time_id = ts.id
