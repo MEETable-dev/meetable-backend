@@ -5,10 +5,10 @@
     "description": "MEETable api 문서입니다",
     "version": "1.0.0"
   },
-  "host": "localhost:8000",
+  "host": "",
   "servers": [
     {
-      "url": "http://localhost:8000"
+      "url": "/"
     }
   ],
   "basePath": "/",

@@ -13,7 +13,7 @@ const swaggerUi = require('swagger-ui-express');
 const swaggerFile = require('./swagger-output.json');
 
 
-const port = 8080;
+const port = process.env.PORT || 8000;
 
 app.use(morgan("dev"));
 app.use(bodyParser.json());
