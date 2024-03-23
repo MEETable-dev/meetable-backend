@@ -1,42 +1,45 @@
 {
-  "name": "meetable-backend",
-  "version": "1.0.0",
-  "description": "",
-  "main": "server.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon server",
-    "swagger-autogen": "node ./swagger.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/MEETable-dev/meetable-backend.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/MEETable-dev/meetable-backend/issues"
-  },
-  "homepage": "https://github.com/MEETable-dev/meetable-backend#readme",
-  "dependencies": {
-    "bcrypt": "^5.1.1",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "ejs": "^3.1.9",
-    "express": "^4.18.2",
-    "helmet": "^7.0.0",
-    "hpp": "^0.2.3",
-    "jsonwebtoken": "^9.0.2",
-    "memory-cache": "^0.2.0",
-    "morgan": "^1.10.0",
-    "mysql2": "^3.6.2",
-    "nodemailer": "^6.9.7",
-    "redis": "^4.6.10"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.1",
-    "swagger-autogen": "^2.23.7",
-    "swagger-ui-express": "^5.0.0"
-  }
+    "name": "meetable-backend",
+    "version": "1.0.0",
+    "description": "",
+    "main": "server.js",
+    "engines": {
+        "node": "18.13.0"
+    },
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "start": "nodemon server",
+        "swagger-autogen": "node ./swagger.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/MEETable-dev/meetable-backend.git"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/MEETable-dev/meetable-backend/issues"
+    },
+    "homepage": "https://github.com/MEETable-dev/meetable-backend#readme",
+    "dependencies": {
+        "bcrypt": "^5.1.1",
+        "cors": "^2.8.5",
+        "dotenv": "^16.3.1",
+        "ejs": "^3.1.9",
+        "express": "^4.18.2",
+        "helmet": "^7.0.0",
+        "hpp": "^0.2.3",
+        "jsonwebtoken": "^9.0.2",
+        "memory-cache": "^0.2.0",
+        "morgan": "^1.10.0",
+        "mysql2": "^3.6.2",
+        "nodemailer": "^6.9.7",
+        "redis": "^4.6.10"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.1",
+        "swagger-autogen": "^2.23.7",
+        "swagger-ui-express": "^5.0.0"
+    }
 }

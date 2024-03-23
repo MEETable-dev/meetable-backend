@@ -170,7 +170,6 @@ router.get("/totalpromise", authMember, async (req, res) => {
 });
 
 // 약속 삭제
-// TODO: 약속 삭제 id 리스트로 받기
 router.patch("/deletepromise", authMember, async (req, res) => {
     if (req.isMember === true) {
         try {
