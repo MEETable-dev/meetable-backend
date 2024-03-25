@@ -1668,6 +1668,12 @@ router.get("/myinfo/:promiseid", authMember, async (req, res) => {
                 date_available: dates.map((item) => item.date_available),
             });
         } else if (weekvsdate === "D" && ampmvstime === "T") {
+            const [dates] = await db.promise().query(`
+                SELECT date_available AS date
+                FROM ${tableName}
+                WHERE ${isMember ? "memberjoin_id" : "nonmember_id"} = ${id}
+                AND MONTH(date_available) = ${queryDate.split("-")[1]}
+            `);
             const [datetimes] = await db.promise().query(`
                 SELECT CONCAT(date_available, ' ', start_time, ' ', end_time) AS datetime
                 FROM ${tableName}
@@ -1676,6 +1682,7 @@ router.get("/myinfo/:promiseid", authMember, async (req, res) => {
                 AND WEEK(date_available) = WEEK('${queryDate}')
             `);
             return res.status(200).json({
+                date_available: dates.map((item) => item.date),
                 datetime_available: datetimes.map((item) => item.datetime),
             });
         }
