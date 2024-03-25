@@ -134,17 +134,23 @@ router.get('/test', (req, res) => {
 });
 
 // 이메일 인증번호 발송
-router.post('/sendVerifyCode', async(req, res) => {
+router.post("/sendVerifyCode", async (req, res) => {
     let randomNumber = Math.floor(Math.random() * 1000000);
-    let verifyCode = ('000000' + randomNumber).slice(-6);
+    let verifyCode = ("000000" + randomNumber).slice(-6);
     let emailTemplete;
-    ejs.renderFile(appDir+'/template/authMail.ejs', {authCode : verifyCode}, function (err, data) {
-        if(err){console.log(err)}
-        emailTemplete = data;
-    });
+    ejs.renderFile(
+        appDir + "/template/authMail.ejs",
+        { authCode: verifyCode },
+        function (err, data) {
+            if (err) {
+                console.log(err);
+            }
+            emailTemplete = data;
+        }
+    );
     const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        host: 'smtp.gmail.com',
+        service: "gmail",
+        host: "smtp.gmail.com",
         port: 587,
         secure: false,
         auth: {
@@ -155,57 +161,62 @@ router.post('/sendVerifyCode', async(req, res) => {
     const mailOptions = {
         from: `MEETable`,
         to: req.body.email,
-        subject: '[MEETable] 회원가입을 위한 인증번호 안내',
+        subject: "[MEETable] 회원가입을 위한 인증번호 안내",
         html: emailTemplete,
     };
-    const [member] = await db.promise().query(`
-        SELECT member_id FROM member WHERE member_email = '${req.body.email}'
-    `)
-    if (member.length != 0 && req.body.findPwdOrSignup == "S") { // 이미 가입된 이메일이고 회원가입 화면인 경우
-        return res.status(400).json({
-            statusCode: 2400,
-            message: "want to singup with this email but email already exists"
-        });
-    } else if (member.length == 0 && req.body.findPwdOrSignup == "P") {
-        return res.status(404).json({
-            statusCode: 2404,
-            message: "want to find pwd of this email but no member found"
-        })
-    }
+    // const [member] = await db.promise().query(`
+    //     SELECT member_id FROM member WHERE member_email = '${req.body.email}'
+    // `)
+    // if (member.length != 0 && req.body.findPwdOrSignup == "S") { // 이미 가입된 이메일이고 회원가입 화면인 경우
+    //     return res.status(400).json({
+    //         statusCode: 2400,
+    //         message: "want to singup with this email but email already exists"
+    //     });
+    // } else if (member.length == 0 && req.body.findPwdOrSignup == "P") {
+    //     return res.status(404).json({
+    //         statusCode: 2404,
+    //         message: "want to find pwd of this email but no member found"
+    //     })
+    // }
     transporter.sendMail(mailOptions, function (error, info) {
         if (error) {
             return res.status(500).json({
                 statusCode: 500,
-                message: `Failed to send authentication email to ${req.body.email}`
+                message: `Failed to send authentication email to ${req.body.email}`,
             });
-        } 
+        }
         cache.put(req.body.email, verifyCode, 180000);
         res.status(200).send({
-            message: `Successfully send authentication email to ${req.body.email}` 
+            message: `Successfully send authentication email to ${req.body.email}`,
         });
         transporter.close();
     });
 });
 
 // 인증번호 검증
-router.post('/confirmVerifyCode', async(req, res) =>{
+router.post("/confirmVerifyCode", async (req, res) => {
     const code = cache.get(req.body.email);
+    const [member] = await db.promise().query(`
+        SELECT member_id FROM member WHERE member_email = '${req.body.email}'
+    `);
+    const isMember = member.length != 0 ? true : false;
     if (!code) {
-        res.status(404).send({ 
+        res.status(404).send({
             statusCode: 1100,
             message: "verify code doesn't exist. expired or not created",
         });
     } else if (code != req.body.verifyCode) {
         res.status(401).send({
             statusCode: 1110,
-            message: "wrong verify code"
+            message: "wrong verify code",
         });
     } else {
         cache.del(req.body.email);
         const emailToken = jwt.email(req.body.email);
-        return res.status(201).send({ 
+        return res.status(201).send({
             emailToken: emailToken,
-            message: "email token provided"
+            isMember: isMember,
+            message: "email token provided",
         });
     }
 });
