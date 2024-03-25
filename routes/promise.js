@@ -75,18 +75,18 @@ router.post('/create', authMember, async(req, res) => {
     }
     if (req.isMember === true) { //회원인 경우
         await db.promise().query(`
-            INSERT INTO memberjoin(member_id, promise_id, member_promise_name, canconfirm)
-            VALUES ('${req.memberId}', '${promiseId}', '${req.body.nickname}', 'T')
-        `)
+            INSERT INTO memberjoin(member_id, promise_id, member_promise_name, member_nickname, canconfirm)
+            VALUES ('${req.memberId}', '${promiseId}', '${req.body.promise_name}', '${req.body.nickname}', 'T')
+        `);
         const [resultFolder] = await db.promise().query(`
             SELECT folder_id FROM folder
             WHERE folder_name = 'meetable' AND member_id = ${req.memberId}
-        `)
-        console.log(resultFolder[0])
+        `);
+        console.log(resultFolder[0]);
         await db.promise().query(`
-            INSERT INTO FOLDER_PROMISE(folder_id, promise_id)
+            INSERT INTO folder_promise(folder_id, promise_id)
             VALUES (${resultFolder[0].folder_id}, ${promiseId})
-        `)
+        `);
         res.status(201).send({ 
             promiseCode: promiseId + "_" + randomString,
             message: "new promise generated"
