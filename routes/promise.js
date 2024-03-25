@@ -1174,7 +1174,7 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
     const queryDate = req.query.date || new Date().toISOString().split("T")[0]; // 날짜 쿼리가 없으면 오늘 날짜 사용(2024-03-11)
     try {
         const [promise] = await db.promise().query(`
-            SELECT promise_name, weekvsdate, ampmvstime, start_time, end_time, canallconfirm 
+            SELECT promise_name, promise_code, weekvsdate, ampmvstime, start_time, end_time, canallconfirm 
             FROM promise
             WHERE promise_id = ${promiseId}
         `);
@@ -1188,6 +1188,7 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
 
         const {
             promise_name,
+            promise_code,
             weekvsdate,
             ampmvstime,
             start_time,
@@ -1240,6 +1241,7 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
             // 최종 응답 객체 생성
             const responseObject = {
                 promise_name: promise_name,
+                promise_code: promise_code,
                 weekvsdate: weekvsdate,
                 ampmvstime: ampmvstime,
                 canallconfirm: canallconfirm,
@@ -1282,6 +1284,7 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
             // 최종 응답 객체 생성
             const responseObject = {
                 promise_name: promise_name,
+                promise_code: promise_code,
                 weekvsdate: weekvsdate,
                 ampmvstime: ampmvstime,
                 canallconfirm: canallconfirm,
@@ -1350,6 +1353,7 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
             // 최종 응답 객체 생성
             const responseObject = {
                 promise_name: promise_name,
+                promise_code: promise_code,
                 weekvsdate: weekvsdate,
                 ampmvstime: ampmvstime,
                 canallconfirm: canallconfirm,
@@ -1444,6 +1448,7 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
             // 최종 응답 객체 생성
             const responseObject = {
                 promise_name: promise_name,
+                promise_code: promise_code,
                 weekvsdate: weekvsdate,
                 ampmvstime: ampmvstime,
                 canallconfirm: canallconfirm,
