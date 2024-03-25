@@ -1605,6 +1605,89 @@ router.get("/hover/:promiseid", authMember, async (req, res) => {
     }
 });
 
+router.get("/myinfo/:promiseid", authMember, async (req, res) => {
+    const queryMonth = req.query.month;
+    const queryDate = req.query.date || new Date().toISOString().split("T")[0]; // 날짜 쿼리가 없으면 오늘 날짜 사용(2024-03-11)
+    const promiseId = req.params.promiseid;
+    const isMember = req.isMember;
+    const tableName = req.isMember ? "membertime" : "nonmembertime";
+    const [memberjoin] = await db.promise().query(`
+        SELECT memberjoin_id
+        FROM memberjoin
+        WHERE member_id = ${req.memberId} AND promise_id = ${promiseId}
+    `);
+    if (memberjoin.length === 0) {
+        return res.status(404).json({
+            statusCode: 1811,
+            message: "memberjoin id not found",
+        });
+    }
+    const id = req.isMember ? memberjoin[0].memberjoin_id : req.nonmemberId;
+
+    try {
+        const [promise] = await db.promise().query(`
+            SELECT weekvsdate, ampmvstime
+            FROM promise
+            WHERE promise_id = ${promiseId}
+        `);
+        if (promise.length === 0) {
+            return res.status(404).json({
+                statusCode: 1809,
+                message: "Promise not found",
+            });
+        }
+
+        const { weekvsdate, ampmvstime } = promise[0];
+
+        if (weekvsdate === "W" && ampmvstime === "F") {
+            const [weekdays] = await db.promise().query(`
+                SELECT week_available FROM ${tableName}
+                WHERE ${isMember ? "memberjoin_id" : "nonmember_id"} = ${id}
+            `);
+            return res.status(200).json({
+                week_available: weekdays.map((item) => item.week_available),
+            });
+        } else if (weekvsdate === "W" && ampmvstime === "T") {
+            const [weektimes] = await db.promise().query(`
+                SELECT CONCAT(week_available, ' ', start_time, ' ', end_time) AS weektime
+                FROM ${tableName}
+                JOIN timeslot ON ${tableName}.time_id = timeslot.id
+                WHERE ${isMember ? "memberjoin_id" : "nonmember_id"} = ${id}
+            `);
+            return res.status(200).json({
+                weektime_available: weektimes.map((item) => item.weektime),
+            });
+        } else if (weekvsdate === "D" && ampmvstime === "F") {
+            const [dates] = await db.promise().query(`
+                SELECT date_available 
+                FROM ${tableName}
+                WHERE ${isMember ? "memberjoin_id" : "nonmember_id"} = ${id}
+                AND MONTH(date_available) = ${queryMonth}
+            `);
+            return res.status(200).json({
+                date_available: dates.map((item) => item.date_available),
+            });
+        } else if (weekvsdate === "D" && ampmvstime === "T") {
+            const [datetimes] = await db.promise().query(`
+                SELECT CONCAT(date_available, ' ', start_time, ' ', end_time) AS datetime
+                FROM ${tableName}
+                JOIN timeslot ON ${tableName}.time_id = timeslot.id
+                WHERE ${isMember ? "memberjoin_id" : "nonmember_id"} = ${id}
+                AND WEEK(date_available) = WEEK('${queryDate}')
+            `);
+            return res.status(200).json({
+                datetime_available: datetimes.map((item) => item.datetime),
+            });
+        }
+    } catch (err) {
+        console.log(err);
+        res.status(500).send({
+            statusCode: 1234,
+            message: "Error retrieving member's information",
+        });
+    }
+});
+
 router.get("/filterinfo/:promiseid", authMember, async (req, res) => {});
 
 router.post("/confirm", authMember, async (req, res) => {});
