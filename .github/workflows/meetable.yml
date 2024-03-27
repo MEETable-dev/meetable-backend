@@ -9,11 +9,11 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout source code
-      uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v4.1.1
 
     - name: Use Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4.0.2
       with:
         node-version: 18 # 또는 프로젝트에 맞는 버전
     
@@ -32,7 +32,7 @@ jobs:
       with:
         aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws_region: ap-northeast-2
+        region: ap-northeast-2
         application_name: meetable
         environment_name: Meetable-env
         version_label: github-action-${{steps.current-time.outputs.formattedTime}}
