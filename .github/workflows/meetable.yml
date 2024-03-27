@@ -18,11 +18,11 @@ jobs:
         node-version: 18 # 또는 프로젝트에 맞는 버전
     
     - name: Get current time
-        uses: 1466587594/get-current-time@v2
-        id: current-time
-        with:
-          format: YYYY-MM-DDTHH-mm-ss
-          utcOffset: "+09:00"
+      uses: 1466587594/get-current-time@v2
+      id: current-time
+      with:
+        format: YYYY-MM-DDTHH-mm-ss
+        utcOffset: "+09:00"
 
     - name: make zip file
       run: zip -r deploy.zip . -x *.git*
