@@ -1,0 +1,39 @@
+name: Deploy to AWS Elastic Beanstalk
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v2
+
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18 # 또는 프로젝트에 맞는 버전
+    
+    - name: Get current time
+        uses: 1466587594/get-current-time@v2
+        id: current-time
+        with:
+          format: YYYY-MM-DDTHH-mm-ss
+          utcOffset: "+09:00"
+
+    - name: make zip file
+      run: zip -r deploy.zip . -x *.git*
+
+    - name: EB Deploy
+      uses: einaregilsson/beanstalk-deploy@v22      
+      with:
+        aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws_region: ap-northeast-2
+        application_name: your-application-name
+        environment_name: your-environment-name
+        version_label: github-action-${{steps.current-time.outputs.formattedTime}}
+        deployment_package: deploy.zip
