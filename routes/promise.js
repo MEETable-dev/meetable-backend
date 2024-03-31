@@ -108,40 +108,41 @@ router.post('/create', authMember, async(req, res) => {
 router.post('/participate', authMember, async(req, res) => {
     const promiseId = req.body.promiseId; // _로 parsing된 값을 보내야함
     const nickname = req.body.nickname; // 별명 또는 비회원 이름
-    const password = req.body.password; // 비회원 비밀번호 (회원일 경우 undefined, 비밀번호 없을 경우 null로 줘야함)
+    const password = req.body.password; // 비회원 비밀번호 (회원일 경우 undefined, 비밀번호 없을 경우 null로 줘야함
 
     if (!promiseId) {
         return res.status(400).send({
             statusCode: 1024,
-            message: "required body missing: promiseId"
+            message: "required body missing: promiseId",
         });
-    } else if (promiseId.includes('_')) {
+    } else if (promiseId.includes("_")) {
         return res.status(400).send({
             statusCode: 1025,
-            message: "promise id should be integer, not including '_'"
+            message: "promise id should be integer, not including '_'",
         });
     }
     try {
         if (req.isMember === true) {
             const [promiseResult] = await db.promise().query(`
-                SELECT canallconfirm FROM promise WHERE promise_id = ${promiseId};
+                SELECT promise_name, canallconfirm FROM promise WHERE promise_id = ${promiseId};
             `);
             const canConfirm = promiseResult[0].canallconfirm;
-             // memberjoin 테이블에 참여 정보 추가
-             await db.promise().query(`
-                INSERT INTO memberjoin (member_id, promise_id, member_nickname, canconfirm)
-                VALUES (${req.memberId}, ${promiseId}, '${nickname}', '${canConfirm}');
+            const promiseName = promiseResult[0].promise_name;
+            // memberjoin 테이블에 참여 정보 추가
+            await db.promise().query(`
+                INSERT INTO memberjoin (member_id, promise_id, member_promise_name, member_nickname, canconfirm)
+                VALUES (${req.memberId}, ${promiseId}, '${promiseName}','${nickname}', '${canConfirm}');
             `);
             const [resultFolder] = await db.promise().query(`
                 SELECT folder_id FROM folder
                 WHERE folder_name = 'meetable' AND member_id = ${req.memberId}
-            `)
+            `);
             await db.promise().query(`
                 INSERT INTO folder_promise(folder_id, promise_id)
                 VALUES (${resultFolder[0].folder_id}, ${promiseId})
             `);
             res.status(200).send({
-                message: "successfully participated as a member"
+                message: "successfully participated as a member",
             });
         } else if (req.isMember === false) {
             // 비회원의 기존 여부 확인
@@ -157,13 +158,13 @@ router.post('/participate', authMember, async(req, res) => {
                 nonmemberId = result[0].insertId;
                 res.status(201).send({
                     nonmemberId: nonmemberId,
-                    message: "successfully participated as a new non-member"
+                    message: "successfully participated as a new non-member",
                 });
             } else {
                 if (nonMemberExists[0].nonmember_pwd == password) {
                     res.status(201).send({
                         nonmemberId: nonMemberExists[0].nonmember_id,
-                        message: "successfully login as a non-member"
+                        message: "successfully login as a non-member",
                     });
                 } else {
                     // 비밀번호 틀린 경우 새로운 비밀번호로 같은 이름의 비회원 생성
@@ -174,7 +175,8 @@ router.post('/participate', authMember, async(req, res) => {
                     nonmemberId = result[0].insertId;
                     res.status(201).send({
                         nonmemberId: nonmemberId,
-                        message: "successfully participated as a new non-member"
+                        message:
+                            "successfully participated as a new non-member",
                     });
                 }
             }
@@ -183,7 +185,7 @@ router.post('/participate', authMember, async(req, res) => {
         console.log(err);
         res.status(500).send({
             statusCode: 1234,
-            message: `Error participating in promise: ${err.message}`
+            message: `Error participating in promise: ${err.message}`,
         });
     }
         
