@@ -1613,18 +1613,21 @@ router.get("/myinfo/:promiseid", authMember, async (req, res) => {
     const promiseId = req.params.promiseid;
     const isMember = req.isMember;
     const tableName = req.isMember ? "membertime" : "nonmembertime";
-    const [memberjoin] = await db.promise().query(`
-        SELECT memberjoin_id
-        FROM memberjoin
-        WHERE member_id = ${req.memberId} AND promise_id = ${promiseId}
-    `);
-    if (memberjoin.length === 0) {
-        return res.status(404).json({
-            statusCode: 1811,
-            message: "memberjoin id not found",
-        });
+    if (isMember === true) {
+        const [memberjoin] = await db.promise().query(`
+            SELECT memberjoin_id
+            FROM memberjoin
+            WHERE member_id = ${req.memberId} AND promise_id = ${promiseId}
+        `);
+        if (memberjoin.length === 0) {
+            return res.status(404).json({
+                statusCode: 1811,
+                message: "memberjoin id not found",
+            });
+        }
     }
     const id = req.isMember ? memberjoin[0].memberjoin_id : req.nonmemberId;
+    
 
     try {
         const [promise] = await db.promise().query(`
