@@ -137,9 +137,9 @@ router.post('/participate', authMember, async(req, res) => {
                 WHERE folder_name = 'meetable' AND member_id = ${req.memberId}
             `)
             await db.promise().query(`
-                INSERT INTO FOLDER_PROMISE(folder_id, promise_id)
+                INSERT INTO folder_promise(folder_id, promise_id)
                 VALUES (${resultFolder[0].folder_id}, ${promiseId})
-            `)
+            `);
             res.status(200).send({
                 message: "successfully participated as a member"
             });
