@@ -105,7 +105,7 @@ router.post('/create', authMember, async(req, res) => {
 // 2. 기존에 존재하지 않는 이름, 비밀번호인 경우 해당 약속에 비회원으로 새로 가입
 // 회원인 경우 약속에 들어와 참여하기를 누르면 약속에 참여됨
 // 0212: 중복참여 불가능하게? 근데 baseinfo 가져올 때 참여상태인지를 가져오면 중복참여 걱정할 필요 없을지도
-router.post('/participate', authMember, async(req, res) => {
+router.post("/participate", authMember, async (req, res) => {
     const promiseId = req.body.promiseId; // _로 parsing된 값을 보내야함
     const nickname = req.body.nickname; // 별명 또는 비회원 이름
     const password = req.body.password; // 비회원 비밀번호 (회원일 경우 undefined, 비밀번호 없을 경우 null로 줘야함
@@ -122,12 +122,13 @@ router.post('/participate', authMember, async(req, res) => {
         });
     }
     try {
+        const [promiseResult] = await db.promise().query(`
+            SELECT promise_name, canallconfirm FROM promise WHERE promise_id = ${promiseId};
+        `);
+        const canConfirm = promiseResult[0].canallconfirm;
+        const promiseName = promiseResult[0].promise_name;
+
         if (req.isMember === true) {
-            const [promiseResult] = await db.promise().query(`
-                SELECT promise_name, canallconfirm FROM promise WHERE promise_id = ${promiseId};
-            `);
-            const canConfirm = promiseResult[0].canallconfirm;
-            const promiseName = promiseResult[0].promise_name;
             // memberjoin 테이블에 참여 정보 추가
             await db.promise().query(`
                 INSERT INTO memberjoin (member_id, promise_id, member_promise_name, member_nickname, canconfirm)
@@ -158,6 +159,7 @@ router.post('/participate', authMember, async(req, res) => {
                 nonmemberId = result[0].insertId;
                 res.status(201).send({
                     nonmemberId: nonmemberId,
+                    canconfirm: canConfirm,
                     message: "successfully participated as a new non-member",
                 });
             } else {
@@ -175,6 +177,7 @@ router.post('/participate', authMember, async(req, res) => {
                     nonmemberId = result[0].insertId;
                     res.status(201).send({
                         nonmemberId: nonmemberId,
+                        canconfirm: canConfirm,
                         message:
                             "successfully participated as a new non-member",
                     });
@@ -188,7 +191,6 @@ router.post('/participate', authMember, async(req, res) => {
             message: `Error participating in promise: ${err.message}`,
         });
     }
-        
 });
 
 // 0210 todo: 중복으로 들어온 요청에 대한 예외처리(들어온 요청에 해당하는 날짜/시간이 존재하는지 확인)
@@ -1627,7 +1629,6 @@ router.get("/myinfo/:promiseid", authMember, async (req, res) => {
         }
     }
     const id = req.isMember ? memberjoin[0].memberjoin_id : req.nonmemberId;
-    
 
     try {
         const [promise] = await db.promise().query(`
@@ -1718,16 +1719,18 @@ router.get("/isparticipate/:promiseid", authMember, async (req, res) => {
     try {
         const [participation] = await db.promise().query(
             `
-            SELECT * FROM memberjoin 
-            WHERE member_id = ? AND promise_id = ?
-        `,
+                SELECT * FROM memberjoin 
+                WHERE member_id = ? AND promise_id = ?
+            `,
             [memberId, promiseId]
         );
 
         const isParticipating = participation.length > 0;
+        const canconfirm = participation[0]?.canconfirm;
 
         res.status(200).json({
-            isParticipating,
+            isParticipating: isParticipating,
+            canconfirm: canconfirm,
             message: isParticipating
                 ? "Member is participating in the promise."
                 : "Member is not participating in the promise.",
