@@ -166,6 +166,7 @@ router.post("/participate", authMember, async (req, res) => {
                 if (nonMemberExists[0].nonmember_pwd == password) {
                     res.status(201).send({
                         nonmemberId: nonMemberExists[0].nonmember_id,
+                        canconfirm: canConfirm,
                         message: "successfully login as a non-member",
                     });
                 } else {
