@@ -1504,7 +1504,7 @@ router.get("/hover/:promiseid", authMember, async (req, res) => {
                 FROM memberjoin mj
                 JOIN membertime mt ON mj.memberjoin_id = mt.memberjoin_id
                 WHERE mj.promise_id = ? AND mt.week_available = ?
-                UNION
+                UNION ALL
                 SELECT nm.nonmember_name AS name
                 FROM nonmembertime nmt
                 JOIN nonmember nm ON nmt.nonmember_id = nm.nonmember_id
@@ -1526,7 +1526,7 @@ router.get("/hover/:promiseid", authMember, async (req, res) => {
                 JOIN membertime mt ON mj.memberjoin_id = mt.memberjoin_id
                 JOIN timeslot ts ON mt.time_id = ts.id
                 WHERE mj.promise_id = ? AND mt.week_available = ? AND ts.start_time = ? AND ts.end_time = ?
-                UNION
+                UNION ALL
                 SELECT nm.nonmember_name AS name
                 FROM nonmembertime nmt
                 JOIN nonmember nm ON nmt.nonmember_id = nm.nonmember_id
@@ -1551,7 +1551,7 @@ router.get("/hover/:promiseid", authMember, async (req, res) => {
                 FROM memberjoin mj
                 JOIN membertime mt ON mj.memberjoin_id = mt.memberjoin_id
                 WHERE mj.promise_id = ? AND mt.date_available = ?
-                UNION
+                UNION ALL
                 SELECT nm.nonmember_name AS name
                 FROM nonmembertime nmt
                 JOIN nonmember nm ON nmt.nonmember_id = nm.nonmember_id
@@ -1573,7 +1573,7 @@ router.get("/hover/:promiseid", authMember, async (req, res) => {
                 JOIN membertime mt ON mj.memberjoin_id = mt.memberjoin_id
                 JOIN timeslot ts ON mt.time_id = ts.id
                 WHERE mj.promise_id = ? AND mt.date_available = ? AND ts.start_time = ? AND ts.end_time = ?
-                UNION
+                UNION ALL
                 SELECT nm.nonmember_name AS name
                 FROM nonmembertime nmt
                 JOIN nonmember nm ON nmt.nonmember_id = nm.nonmember_id
