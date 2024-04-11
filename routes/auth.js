@@ -104,9 +104,15 @@ router.post('/login', async(req, res) => {
 // Todo: socialType 받아서 socialType 별 signToken 발행 구현  
 router.post('/signToken', async(req, res) => {
     const signToken = jwt.sign(req.body.name, req.body.emailToken, req.body.pwd);
-    res.status(200).send({  
+    if (req.body.pwd.length < 8) {
+        return res.status(400).json({
+            statusCode: 1003,
+            message: "password should be at least 8 characters",
+        });
+    }
+    return res.status(200).send({
         signToken: signToken,
-        message: "sign token provided"
+        message: "sign token provided",
     });
 });
 
