@@ -829,6 +829,88 @@
               ]
           }
       },
+      "/calendar/add": {
+        "post": {
+            "tags": ["calendar"],
+            "summary": "Add a new calendar event",
+            "description": "Allows members to add a new event to their calendar.",
+            "parameters": [
+                {
+                    "name": "body",
+                    "in": "body",
+                    "required": true,
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "color": {
+                                "type": "integer",
+                                "example": 5
+                            },
+                            "name": {
+                                "type": "string",
+                                "example": "Meeting with team"
+                            },
+                            "place": {
+                                "type": "string",
+                                "example": "Conference room"
+                            },
+                            "memo": {
+                                "type": "string",
+                                "example": "Discuss project status"
+                            },
+                            "isreptition": {
+                                "type": "string",
+                                "example": "F"
+                            },
+                            "scheduleTimes": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "example": ["2023-12-17 09:00:00 11:00:00", "2023-12-25 10:00:00 12:00:00"]
+                            },
+                            "reptitioncycle": {
+                                "type": "integer",
+                                "example": 0
+                            },
+                            "iscontinuous": {
+                                "type": "string",
+                                "example": "F"
+                            },
+                            "reptition_time": {
+                                "type": "integer",
+                                "example": 0
+                            },
+                            "end_date": {
+                                "type": "string",
+                                "example": "2024-01-01"
+                            }
+                        },
+                        "required": ["color", "name", "scheduleTimes"]
+                    }
+                }
+            ],
+            "responses": {
+                "201": {
+                    "description": "Event successfully added to the calendar."
+                },
+                "400": {
+                    "description": "Invalid input."
+                },
+                "401": {
+                    "description": "Unauthorized. Only members can add events."
+                },
+                "500": {
+                    "description": "Internal server error."
+                }
+            },
+            "security": [
+                {
+                    "bearerAuth": []
+                }
+            ]
+        }
+    },
       "/home/bookmark": {
           "patch": {
               "tags": ["home"],
