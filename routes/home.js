@@ -314,6 +314,12 @@ router.get("/trash", authMember, async (req, res) => {
 
 // 약속명 변경
 router.patch("/promisename", authMember, async (req, res) => {
+    if (req.body.promiseName === null || req.body.promiseName === undefined) {
+        return res.status(400).send({
+            statusCode: 1024,
+            message: "required body missed: promiseName or promiseName is null",
+        });
+    }
     if (req.isMember === true) {
         await db
             .promise()

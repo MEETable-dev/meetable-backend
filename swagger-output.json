@@ -829,6 +829,327 @@
               ]
           }
       },
+      "/calendar/add": {
+          "post": {
+              "tags": ["calendar"],
+              "summary": "Add a new calendar event",
+              "description": "Allows members to add a new event to their calendar.",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "required": true,
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "color": {
+                                  "type": "integer",
+                                  "example": 5
+                              },
+                              "name": {
+                                  "type": "string",
+                                  "example": "Meeting with team"
+                              },
+                              "place": {
+                                  "type": "string",
+                                  "example": "Conference room"
+                              },
+                              "memo": {
+                                  "type": "string",
+                                  "example": "Discuss project status"
+                              },
+                              "isreptition": {
+                                  "type": "string",
+                                  "example": "F"
+                              },
+                              "scheduleTimes": {
+                                  "type": "array",
+                                  "items": {
+                                      "type": "string"
+                                  },
+                                  "example": [
+                                      "2023-12-17 09:00:00 11:00:00",
+                                      "2023-12-25 10:00:00 12:00:00"
+                                  ]
+                              },
+                              "reptitioncycle": {
+                                  "type": "integer",
+                                  "example": 0
+                              },
+                              "iscontinuous": {
+                                  "type": "string",
+                                  "example": "F"
+                              },
+                              "reptition_time": {
+                                  "type": "integer",
+                                  "example": 0
+                              },
+                              "end_date": {
+                                  "type": "string",
+                                  "example": "2024-01-01"
+                              }
+                          },
+                          "required": ["color", "name", "scheduleTimes"]
+                      }
+                  }
+              ],
+              "responses": {
+                  "201": {
+                      "description": "Event successfully added to the calendar."
+                  },
+                  "400": {
+                      "description": "Invalid input."
+                  },
+                  "401": {
+                      "description": "Unauthorized. Only members can add events."
+                  },
+                  "500": {
+                      "description": "Internal server error."
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/calendar/delete": {
+          "delete": {
+              "tags": ["calendar"],
+              "summary": "Delete a calendar event",
+              "description": "Deletes a specific calendar event along with all associated time entries. Requires user authentication.",
+              "parameters": [
+                  {
+                      "name": "calendarId",
+                      "in": "body",
+                      "required": true,
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "calendarId": {
+                                  "type": "integer",
+                                  "example": 1,
+                                  "description": "The unique identifier of the calendar event to delete."
+                              }
+                          },
+                          "required": ["calendarId"]
+                      },
+                      "description": "A JSON object containing the calendarId of the event to be deleted."
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "Calendar event deleted successfully."
+                  },
+                  "400": {
+                      "description": "Invalid request. Please provide a valid calendarId."
+                  },
+                  "401": {
+                      "description": "Unauthorized. Only authenticated members can delete events."
+                  },
+                  "404": {
+                      "description": "Not Found. The calendar event does not exist or the calendarId is incorrect."
+                  },
+                  "500": {
+                      "description": "Internal server error. Could not delete the event due to a server error."
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ],
+              "produces": ["application/json"]
+          }
+      },
+      "/calendar/update": {
+          "patch": {
+              "tags": ["calendar"],
+              "summary": "Update an existing calendar event",
+              "description": "Updates an existing event and its associated times in the calendar. Requires user authentication and that the caller is the owner of the event.",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "required": true,
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "calendarId": {
+                                  "type": "integer",
+                                  "example": 1,
+                                  "description": "The unique identifier of the calendar event to update."
+                              },
+                              "color": {
+                                  "type": "integer",
+                                  "example": 5,
+                                  "description": "Schedule color code (0-8)."
+                              },
+                              "name": {
+                                  "type": "string",
+                                  "example": "Meeting with team",
+                                  "description": "Name of the event."
+                              },
+                              "place": {
+                                  "type": "string",
+                                  "example": "Conference room",
+                                  "description": "Location of the event."
+                              },
+                              "memo": {
+                                  "type": "string",
+                                  "example": "Discuss project status",
+                                  "description": "Additional notes about the event."
+                              },
+                              "isreptition": {
+                                  "type": "string",
+                                  "example": "F",
+                                  "description": "Flag indicating if the event repeats ('T' or 'F')."
+                              },
+                              "scheduleTimes": {
+                                  "type": "array",
+                                  "items": {
+                                      "type": "string"
+                                  },
+                                  "example": [
+                                      "2023-12-17 09:00:00 11:00:00",
+                                      "2023-12-25 10:00:00 12:00:00"
+                                  ],
+                                  "description": "List of new times for the event, in 'YYYY-MM-DD HH:MM:SS HH:MM:SS' format."
+                              },
+                              "reptitioncycle": {
+                                  "type": "integer",
+                                  "example": 0,
+                                  "description": "How often the event repeats, in weeks (0 if it does not repeat)."
+                              },
+                              "iscontinuous": {
+                                  "type": "string",
+                                  "example": "F",
+                                  "description": "Flag indicating if the event repeats continuously ('T' or 'F')."
+                              },
+                              "reptition_time": {
+                                  "type": "integer",
+                                  "example": 0,
+                                  "description": "Number of times the event should repeat."
+                              },
+                              "end_date": {
+                                  "type": "string",
+                                  "example": "2024-01-01",
+                                  "description": "End date for the event (if it repeats)."
+                              }
+                          },
+                          "required": [
+                              "calendarId",
+                              "color",
+                              "name",
+                              "scheduleTimes"
+                          ]
+                      },
+                      "description": "A JSON object containing details about the event to be updated."
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "Event updated successfully."
+                  },
+                  "400": {
+                      "description": "Invalid request. Please ensure all required fields are filled correctly."
+                  },
+                  "401": {
+                      "description": "Unauthorized. Only authenticated users can update events."
+                  },
+                  "404": {
+                      "description": "Not found. No event found with the provided ID, or you do not own the event."
+                  },
+                  "500": {
+                      "description": "Internal server error. Could not update the event due to a server error."
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ],
+              "produces": ["application/json"]
+          }
+      },
+      "/calendar/scheduleinfo": {
+          "get": {
+              "tags": ["calendar"],
+              "summary": "Get schedule information for a specific month",
+              "description": "Retrieve the list of scheduled events for the given month. If an event is repeated, only instances falling within the specified month are returned.",
+              "parameters": [
+                  {
+                      "name": "month",
+                      "in": "query",
+                      "required": true,
+                      "type": "string",
+                      "format": "date",
+                      "description": "The month for which the schedule is being queried in the format YYYY-MM."
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "A list of scheduled events for the specified month.",
+                      "schema": {
+                          "type": "object"
+                      }
+                  },
+                  "400": {
+                      "description": "Bad request. A month query parameter is required."
+                  },
+                  "401": {
+                      "description": "Unauthorized. Only authenticated users can access their schedule."
+                  },
+                  "500": {
+                      "description": "Internal server error when fetching schedule information."
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/calendar/detail": {
+          "get": {
+              "tags": ["calendar"],
+              "summary": "Get schedule detail for a specific id",
+              "description": "Retrieve the detail of scheduled events for the given month.",
+              "parameters": [
+                  {
+                      "name": "calendarId",
+                      "in": "query",
+                      "required": true,
+                      "type": "integer",
+                      "format": "number"
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "A detail of scheduled events for the specified id.",
+                      "schema": {
+                          "type": "object"
+                      }
+                  },
+                  "400": {
+                      "description": "Bad request. A month query parameter is required."
+                  },
+                  "401": {
+                      "description": "Unauthorized. Only authenticated users can access their schedule."
+                  },
+                  "500": {
+                      "description": "Internal server error when fetching schedule information."
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
       "/home/bookmark": {
           "patch": {
               "tags": ["home"],

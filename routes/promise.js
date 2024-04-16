@@ -40,6 +40,13 @@ router.post('/create', authMember, async(req, res) => {
     console.log(randomString);
     let result;
     let promiseId;
+    if (req.body.promise_name === null || req.body.promise_name === undefined) {
+        return res.status(400).send({
+            statusCode: 1024,
+            message:
+                "required body missing: promise_name or promise_name should not be null",
+        });
+    }
     if (req.body.ampmvstime == 'F') {
         result = await db.promise().query(`
             INSERT INTO promise(promise_code, promise_name, weekvsdate, ampmvstime, canallconfirm)
@@ -1490,7 +1497,7 @@ router.get("/hover/:promiseid", authMember, async (req, res) => {
 
         if (promise.length === 0) {
             return res.status(404).json({
-                statusCode: 4044,
+                statusCode: 1809,
                 message: "promise not found.",
             });
         }
