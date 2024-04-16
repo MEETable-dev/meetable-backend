@@ -269,8 +269,9 @@ function formatDateToUTC(date) {
 router.get("/scheduleinfo", authMember, async (req, res) => {
     if (!req.isMember) {
         return res.status(401).json({
+            statusCode: 1000,
             message:
-                "access denied. Only members can access schedule information.",
+                "access denied. only members can access schedule information.",
         });
     }
     const month = req.query.month; // 예: month="2023-12"
@@ -383,6 +384,14 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
 router.get("/detail", authMember, async (req, res) => {
     // 쿼리 파라미터로부터 calendarId를 추출합니다.
     const { calendarId } = req.query;
+
+    if (!req.isMember) {
+        return res.status(401).json({
+            statusCode: 1000,
+            message:
+                "access denied. only members can access schedule information.",
+        });
+    }
 
     // calendarId가 제공되지 않은 경우, 클라이언트에 에러를 반환합니다.
     if (!calendarId) {
