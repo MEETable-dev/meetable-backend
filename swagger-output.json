@@ -1073,6 +1073,83 @@
               "produces": ["application/json"]
           }
       },
+      "/calendar/scheduleinfo": {
+          "get": {
+              "tags": ["calendar"],
+              "summary": "Get schedule information for a specific month",
+              "description": "Retrieve the list of scheduled events for the given month. If an event is repeated, only instances falling within the specified month are returned.",
+              "parameters": [
+                  {
+                      "name": "month",
+                      "in": "query",
+                      "required": true,
+                      "type": "string",
+                      "format": "date",
+                      "description": "The month for which the schedule is being queried in the format YYYY-MM."
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "A list of scheduled events for the specified month.",
+                      "schema": {
+                          "type": "object"
+                      }
+                  },
+                  "400": {
+                      "description": "Bad request. A month query parameter is required."
+                  },
+                  "401": {
+                      "description": "Unauthorized. Only authenticated users can access their schedule."
+                  },
+                  "500": {
+                      "description": "Internal server error when fetching schedule information."
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/calendar/detail": {
+          "get": {
+              "tags": ["calendar"],
+              "summary": "Get schedule detail for a specific id",
+              "description": "Retrieve the detail of scheduled events for the given month.",
+              "parameters": [
+                  {
+                      "name": "calendarId",
+                      "in": "query",
+                      "required": true,
+                      "type": "integer",
+                      "format": "number"
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "A detail of scheduled events for the specified id.",
+                      "schema": {
+                          "type": "object"
+                      }
+                  },
+                  "400": {
+                      "description": "Bad request. A month query parameter is required."
+                  },
+                  "401": {
+                      "description": "Unauthorized. Only authenticated users can access their schedule."
+                  },
+                  "500": {
+                      "description": "Internal server error when fetching schedule information."
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
       "/home/bookmark": {
           "patch": {
               "tags": ["home"],

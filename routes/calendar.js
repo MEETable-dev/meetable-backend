@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const authMember = require("../middlewares/authmember");
+const { format } = require("mysql2");
 
 router.post("/add", authMember, async (req, res) => {
     if (req.isMember === false) {
@@ -31,6 +32,22 @@ router.post("/add", authMember, async (req, res) => {
             statusCode: 1024,
             message: "Invalid input. Please provide the correct data.",
         });
+    }
+
+    // 반복 일정의 추가 검증
+    if (isreptition === "T") {
+        const isContinuousValid = iscontinuous === "T";
+        const isReptitionTimeValid = reptition_time > 0;
+        const isEndDateValid = end_date != null; // end_date가 문자열 형식의 날짜여야 함
+
+        // 적어도 하나의 값이 기본값이 아니어야 함
+        if (!isContinuousValid && !isReptitionTimeValid && !isEndDateValid) {
+            return res.status(400).json({
+                statusCode: 1025,
+                message:
+                    "Invalid repetition settings. Provide a valid 'iscontinuous', 'reptition_time', or 'end_date' value.",
+            });
+        }
     }
 
     try {
@@ -163,9 +180,26 @@ router.patch("/update", authMember, async (req, res) => {
         !Array.isArray(scheduleTimes)
     ) {
         return res.status(400).json({
+            statusCode: 1024,
             message:
                 "invalid input. Please provide the correct data and ensure all required fields are included.",
         });
+    }
+
+    // 반복 일정의 추가 검증
+    if (isreptition === "T") {
+        const isContinuousValid = iscontinuous === "T";
+        const isReptitionTimeValid = reptition_time > 0;
+        const isEndDateValid = end_date != null; // end_date가 문자열 형식의 날짜여야 함
+
+        // 적어도 하나의 값이 기본값이 아니어야 함
+        if (!isContinuousValid && !isReptitionTimeValid && !isEndDateValid) {
+            return res.status(400).json({
+                statusCode: 1025,
+                message:
+                    "Invalid repetition settings. Provide a valid 'iscontinuous', 'reptition_time', or 'end_date' value.",
+            });
+        }
     }
 
     try {
@@ -225,23 +259,26 @@ router.patch("/update", authMember, async (req, res) => {
     }
 });
 
+// 날짜 포매팅 함수
+function formatDateToUTC(date) {
+    const d = new Date(date);
+    d.setDate(date.getDate() + 1);
+    return d.toISOString().split("T")[0];
+}
+
 router.get("/scheduleinfo", authMember, async (req, res) => {
     if (!req.isMember) {
-        return res
-            .status(401)
-            .json({
-                message:
-                    "Access denied. Only members can access schedule information.",
-            });
+        return res.status(401).json({
+            message:
+                "access denied. Only members can access schedule information.",
+        });
     }
-
-    const { month } = req.query; // 예: month="2023-12"
+    const month = req.query.month; // 예: month="2023-12"
     if (!month) {
-        return res
-            .status(400)
-            .json({
-                message: "Please provide a month for querying schedules.",
-            });
+        return res.status(400).json({
+            statusCode: 1024,
+            message: "please provide a month for querying schedules.",
+        });
     }
 
     const memberId = req.memberId;
@@ -249,9 +286,9 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
     try {
         const schedules = await db.promise().query(
             `
-            SELECT id, schedule_name, isreptition, reptitioncycle, iscontinuous, reptition_time, end_date, calendar_date
-            FROM CALENDAR
-            JOIN CALENDARTIME ON CALENDAR.id = CALENDARTIME.calendar_id
+            SELECT calendar.id, calendar.schedule_color, calendar.schedule_name, calendar.isreptition, calendar.reptitioncycle, calendar.iscontinuous, calendar.reptition_time, calendar.end_date, calendartime.calendar_date
+            FROM calendar
+            JOIN calendartime ON calendar.id = calendartime.calendar_id
             WHERE member_id = ?
         `,
             [memberId]
@@ -259,17 +296,33 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
 
         let formattedResponse = {};
 
-        schedules.forEach((schedule) => {
-            if (schedule.isreptition === "T") {
+        schedules[0].forEach((schedule) => {
+            let calendarDateString =
+                schedule.calendar_date instanceof Date
+                    ? formatDateToUTC(schedule.calendar_date)
+                    : schedule.calendar_date;
+            let endDateString = schedule.end_date
+                ? formatDateToUTC(schedule.end_date)
+                : null;
+            let currentDate = new Date(calendarDateString);
+            if (
+                schedule.isreptition === "T" &&
+                currentDate <
+                    new Date(month.split("-")[0], month.split("-")[1] + 1, 1)
+            ) {
                 // 반복 일정에 대한 처리
-                let currentDate = new Date(schedule.calendar_date);
-                let endDate = schedule.end_date
-                    ? new Date(schedule.end_date)
-                    : new Date();
+                // let currentDate = new Date(calendarDateString);
+                let endDate = endDateString
+                    ? new Date(endDateString)
+                    : new Date(calendarDateString);
                 let repeatCycle = schedule.reptitioncycle * 7;
                 let repeatCount = schedule.reptition_time;
 
-                while (currentDate < endDate || schedule.iscontinuous === "T") {
+                while (
+                    currentDate <= endDate ||
+                    schedule.iscontinuous === "T" ||
+                    repeatCount > 0
+                ) {
                     let yearMonth = `${currentDate.getFullYear()}-${String(
                         currentDate.getMonth() + 1
                     ).padStart(2, "0")}`;
@@ -280,6 +333,7 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
                         }
                         formattedResponse[dayKey].push({
                             id: schedule.id,
+                            color: schedule.schedule_color,
                             name: schedule.schedule_name,
                         });
                     }
@@ -292,31 +346,32 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
                     if (
                         repeatCount !== null &&
                         --repeatCount <= 0 &&
-                        schedule.iscontinuous !== "T"
+                        schedule.iscontinuous !== "T" &&
+                        currentDate === endDate
                     ) {
                         // 지정된 반복 횟수에 도달하면 중단
                         break;
                     }
-
                     // 다음 반복 일정으로 날짜 업데이트
                     currentDate.setDate(currentDate.getDate() + repeatCycle);
                 }
-            } else {
+            } else if (schedule.isreptition === "F") {
                 // 반복되지 않는 일정에 대한 처리
-                if (schedule.calendar_date.startsWith(month)) {
-                    let dateKey = schedule.calendar_date;
+                if (calendarDateString.startsWith(month)) {
+                    let dateKey = calendarDateString;
                     if (!formattedResponse[dateKey]) {
                         formattedResponse[dateKey] = [];
                     }
                     formattedResponse[dateKey].push({
                         id: schedule.id,
+                        color: schedule.schedule_color,
                         name: schedule.schedule_name,
                     });
                 }
             }
         });
 
-        res.json(formattedResponse);
+        res.status(200).json(formattedResponse);
     } catch (error) {
         console.error(error);
         res.status(500).json({
@@ -325,6 +380,70 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
     }
 });
 
-router.get("/detail", authMember, async (req, res) => {});
+router.get("/detail", authMember, async (req, res) => {
+    // 쿼리 파라미터로부터 calendarId를 추출합니다.
+    const { calendarId } = req.query;
+
+    // calendarId가 제공되지 않은 경우, 클라이언트에 에러를 반환합니다.
+    if (!calendarId) {
+        return res.status(400).json({
+            statusCode: 1024,
+            message: "calendar ID is required.",
+        });
+    }
+
+    try {
+        // CALENDAR 테이블에서 해당 calendarId의 상세 정보를 가져옵니다.
+        const [calendarDetails] = await db.promise().query(
+            `
+             SELECT * FROM calendar WHERE id = ?
+         `,
+            [calendarId]
+        );
+
+        // 해당 ID의 CALENDARTIME 정보를 가져옵니다.
+        const [calendarTimes] = await db.promise().query(
+            `
+             SELECT * FROM calendartime WHERE calendar_id = ?
+         `,
+            [calendarId]
+        );
+
+        // CALENDAR의 상세 정보가 존재하지 않는 경우, 클라이언트에 에러를 반환합니다.
+        if (calendarDetails.length === 0) {
+            return res.status(404).json({
+                statusCode: 1812,
+                message: "calendar details not found.",
+            });
+        }
+
+        // 결과를 포맷하여 클라이언트에 반환합니다.
+        const result = {
+            color: calendarDetails[0].schedule_color,
+            name: calendarDetails[0].schedule_name,
+            times: calendarTimes.map((time) => ({
+                date: time.calendar_date,
+                startTime: time.start_time,
+                endTime: time.end_time,
+            })),
+            isReptition: calendarDetails[0].isreptition,
+            reptitionCycle: calendarDetails[0].reptitioncycle,
+            isContinuous: calendarDetails[0].iscontinuous,
+            reptitionTime: calendarDetails[0].reptition_time,
+            endDate: calendarDetails[0].end_date,
+            place: calendarDetails[0].schedule_place,
+            memo: calendarDetails[0].schedule_memo,
+        };
+
+        res.status(200).json(result);
+    } catch (error) {
+        // 데이터베이스 조회 중 오류가 발생한 경우, 클라이언트에 에러를 반환합니다.
+        console.error(error);
+        res.status(500).json({
+            statusCode: 1234,
+            message: `Error retrieving calendar details: ${error.message}`,
+        });
+    }
+});
 
 module.exports = router;
