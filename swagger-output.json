@@ -40,6 +40,10 @@
       "description": "일정/달력 관련"
     },
     {
+        "name": "confirm",
+        "description": "확정하기"
+    }
+    {
       "name": "member",
       "description": "회원정보"
     }
