@@ -1623,8 +1623,9 @@ router.get("/myinfo/:promiseid", authMember, async (req, res) => {
     const promiseId = req.params.promiseid;
     const isMember = req.isMember;
     const tableName = req.isMember ? "membertime" : "nonmembertime";
+    let memberjoin;
     if (isMember === true) {
-        const [memberjoin] = await db.promise().query(`
+        memberjoin = await db.promise().query(`
             SELECT memberjoin_id
             FROM memberjoin
             WHERE member_id = ${req.memberId} AND promise_id = ${promiseId}
@@ -1636,7 +1637,7 @@ router.get("/myinfo/:promiseid", authMember, async (req, res) => {
             });
         }
     }
-    const id = req.isMember ? memberjoin[0].memberjoin_id : req.nonmemberId;
+    const id = req.isMember ? memberjoin[0][0].memberjoin_id : req.nonmemberId;
 
     try {
         const [promise] = await db.promise().query(`

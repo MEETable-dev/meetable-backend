@@ -7,7 +7,7 @@ const authMember = require("../middlewares/authmember");
 //confirmed table에 promiseId, place, notice 넣어서 만든 후 confirmedtime table에도 시간 추가
 router.post("/add", authMember, async (req, res) => {});
 
-// 확정 권한이 있는 회원/비회원은 확정을 수정할 수 있음(공지사항, 장소)
+// 확정 권한이  있는 회원/비회원은 확정을 수정할 수 있음(공지사항, 장소)
 router.patch("/update", authMember, async (req, res) => {});
 
 // 확정권한이 있는 회원/비회원은 확정을 취소할 수 있음
@@ -16,7 +16,6 @@ router.delete("/cancel", authMember, async (req, res) => {});
 
 // 확정된 약속을 표시하는 것은 약속세부 가져오기를 수정하는 것이 좋을듯
 // 같은 맥락으로 (회원) 내 캘린더에 약속이 있는 경우에도 일정있는 날짜임을 표시해야함
-
 // 내 캘린더에 연동하는 경우 장소, 공지사항은 수정이 불가능하고 회원만 가능하다. 일정명은 기본적으로 약속명이고 시간정보가 입력되어있다(calendartime 기반)
 
 // 내 캘린더에 연동할 때 기본으로 가져올 정보들(약속명, 장소, 공지사항, 시간정보)
