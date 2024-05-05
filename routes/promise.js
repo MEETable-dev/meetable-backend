@@ -13,6 +13,13 @@ function generateRandomString(length) {
     return result;
 }
 
+// 날짜 포매팅 함수
+function formatDateToUTC(date) {
+    const d = new Date(date);
+    d.setDate(date.getDate() + 1);
+    return d.toISOString().split("T")[0];
+}
+
 // 새 약속잡기(로그인 한 경우 유저 이름 제공)
 router.get('/username', authMember, async(req, res) => {
     if (req.isMember === true) {
@@ -796,6 +803,7 @@ async function deleteDateAvailable(
         const day = String(date.getDate()).padStart(2, "0");
         return `${year}-${month}-${day}`;
     });
+    // console.log(validDatesArray);
     let statusCode = 200;
     let existingDatesQuery = "";
 
@@ -813,7 +821,8 @@ async function deleteDateAvailable(
         `;
     }
     const [existingDates] = await db.promise().query(existingDatesQuery);
-    const existingDatesArray = existingDates.map((item) => item.date_available);
+    const existingDatesArray = existingDates.map((item) => formatDateToUTC(item.date_available));
+    console.log(existingDatesArray);
 
     try {
         for (let date of dateToDelete) {
@@ -984,6 +993,7 @@ async function deleteDateTimeAvailable(
     try {
         for (let datetime of datetimeToDelete) {
             const [date, startTime, endTime] = datetime.split(" ");
+            console.log(date);
             if (existingDatetimesArray.includes(datetime)) {
                 if (validDatesArray.includes(date)) {
                     // 시간이 유효한 범위 내에 있는지 확인
@@ -1616,13 +1626,6 @@ router.get("/hover/:promiseid", authMember, async (req, res) => {
         });
     }
 });
-
-// 날짜 포매팅 함수
-function formatDateToUTC(date) {
-    const d = new Date(date);
-    d.setDate(date.getDate() + 1);
-    return d.toISOString().split("T")[0];
-}
 
 router.get("/myinfo/:promiseid", authMember, async (req, res) => {
     const queryMonth =
