@@ -1618,11 +1618,16 @@ router.get("/hover/:promiseid", authMember, async (req, res) => {
 });
 
 router.get("/myinfo/:promiseid", authMember, async (req, res) => {
-    const queryMonth = req.query.month || new Date().getMonth() + 1; // 월 쿼리가 없으면 이번 달 사용(3)
+    const queryMonth =
+        req.query.month ||
+        new Date().toISOString().split("T")[0].split("-")[0] +
+            "-" +
+            new Date().toISOString().split("T")[0].split("-")[1]; // 월 쿼리가 없으면 이번 달 사용(2024-03)
     const queryDate = req.query.date || new Date().toISOString().split("T")[0]; // 날짜 쿼리가 없으면 오늘 날짜 사용(2024-03-11)
     const promiseId = req.params.promiseid;
     const isMember = req.isMember;
     const tableName = req.isMember ? "membertime" : "nonmembertime";
+    console.log(queryMonth);
     let memberjoin;
     if (isMember === true) {
         memberjoin = await db.promise().query(`
@@ -1677,17 +1682,23 @@ router.get("/myinfo/:promiseid", authMember, async (req, res) => {
                 SELECT date_available 
                 FROM ${tableName}
                 WHERE ${isMember ? "memberjoin_id" : "nonmember_id"} = ${id}
-                AND MONTH(date_available) = ${queryMonth}
+                AND MONTH(date_available) = ${
+                    queryMonth.split("-")[1]
+                } AND YEAR(date_available) = ${queryMonth.split("-")[0]}
             `);
             return res.status(200).json({
-                date_available: dates.map((item) => item.date_available),
+                date_available: dates.map(
+                    (item) => item.date_available.toISOString().split("T")[0]
+                ),
             });
         } else if (weekvsdate === "D" && ampmvstime === "T") {
             const [dates] = await db.promise().query(`
                 SELECT date_available AS date
                 FROM ${tableName}
                 WHERE ${isMember ? "memberjoin_id" : "nonmember_id"} = ${id}
-                AND MONTH(date_available) = ${queryDate.split("-")[1]}
+                AND MONTH(date_available) = ${
+                    queryDate.split("-")[1]
+                } AND YEAR(date_available) = ${queryDate.split("-")[0]}
             `);
             const [datetimes] = await db.promise().query(`
                 SELECT CONCAT(date_available, ' ', start_time, ' ', end_time) AS datetime
@@ -1697,7 +1708,9 @@ router.get("/myinfo/:promiseid", authMember, async (req, res) => {
                 AND WEEK(date_available) = WEEK('${queryDate}')
             `);
             return res.status(200).json({
-                date_available: dates.map((item) => item.date),
+                date_available: dates.map(
+                    (item) => item.date.toISOString().split("T")[0]
+                ),
                 datetime_available: datetimes.map((item) => item.datetime),
             });
         }
