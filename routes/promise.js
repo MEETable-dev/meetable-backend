@@ -1617,6 +1617,13 @@ router.get("/hover/:promiseid", authMember, async (req, res) => {
     }
 });
 
+// 날짜 포매팅 함수
+function formatDateToUTC(date) {
+    const d = new Date(date);
+    d.setDate(date.getDate() + 1);
+    return d.toISOString().split("T")[0];
+}
+
 router.get("/myinfo/:promiseid", authMember, async (req, res) => {
     const queryMonth =
         req.query.month ||
@@ -1688,7 +1695,7 @@ router.get("/myinfo/:promiseid", authMember, async (req, res) => {
             `);
             return res.status(200).json({
                 date_available: dates.map(
-                    (item) => item.date_available.toISOString().split("T")[0]
+                    (item) => formatDateToUTC(item.date_available)
                 ),
             });
         } else if (weekvsdate === "D" && ampmvstime === "T") {
@@ -1709,7 +1716,7 @@ router.get("/myinfo/:promiseid", authMember, async (req, res) => {
             `);
             return res.status(200).json({
                 date_available: dates.map(
-                    (item) => item.date.toISOString().split("T")[0]
+                    (item) => formatDateToUTC(item.date)
                 ),
                 datetime_available: datetimes.map((item) => item.datetime),
             });
