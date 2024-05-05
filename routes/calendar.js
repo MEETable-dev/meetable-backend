@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const authMember = require("../middlewares/authmember");
-const { format } = require("mysql2");
 
 router.post("/add", authMember, async (req, res) => {
     if (req.isMember === false) {

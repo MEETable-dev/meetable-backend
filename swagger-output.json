@@ -23,26 +23,30 @@
     }
   },
   "tags": [
-    {
-      "name": "auth",
-      "description": "유저 인증 관련(회원가입/로그인)"
-    },
-    {
-      "name": "home",
-      "description": "홈 + 사이드바 + 전체 약속 목록"
-    },
-    {
-      "name": "promise",
-      "description": "약속 생성 및 약속 세부"
-    },
-    {
-      "name": "calendar",
-      "description": "일정/달력 관련"
-    },
-    {
-      "name": "member",
-      "description": "회원정보"
-    }
+      {
+          "name": "auth",
+          "description": "유저 인증 관련(회원가입/로그인)"
+      },
+      {
+          "name": "home",
+          "description": "홈 + 사이드바 + 전체 약속 목록"
+      },
+      {
+          "name": "promise",
+          "description": "약속 생성 및 약속 세부"
+      },
+      {
+          "name": "calendar",
+          "description": "일정/달력 관련"
+      },
+      {
+          "name": "confirm",
+          "description": "확정하기"
+      },
+      {
+          "name": "member",
+          "description": "회원정보"
+      }
   ],
   "paths": {
       "/auth/signup": {
