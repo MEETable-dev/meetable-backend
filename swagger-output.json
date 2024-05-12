@@ -1536,6 +1536,271 @@
                   }
               ]
           }
+      },
+      "/confirm/add": {
+          "post": {
+              "tags": ["confirm"],
+              "description": "Allows members to confirm promises if they have the necessary permission, and store relevant details in the database.",
+              "parameters": [
+                  {
+                      "in": "body",
+                      "name": "body",
+                      "description": "Confirmation and time details",
+                      "required": true,
+                      "schema": {
+                          "type": "object",
+                          "required": ["promiseId", "place", "notice"],
+                          "properties": {
+                              "promiseId": {
+                                  "type": "integer",
+                                  "format": "int64",
+                                  "example": 1
+                              },
+                              "place": {
+                                  "type": "string",
+                                  "example": "Conference Room A"
+                              },
+                              "notice": {
+                                  "type": "string",
+                                  "example": "Meeting about project X"
+                              },
+                              "weekAvailable": {
+                                  "type": "array",
+                                  "items": {
+                                      "type": "string"
+                                  },
+                                  "example": ["SUN", "MON", "TUE"]
+                              },
+                              "dateAvailable": {
+                                  "type": "array",
+                                  "items": {
+                                      "type": "string",
+                                      "format": "date"
+                                  },
+                                  "example": ["2024-01-15", "2024-01-16"]
+                              },
+                              "weektimeAvailable": {
+                                  "type": "array",
+                                  "items": {
+                                      "type": "string"
+                                  },
+                                  "example": [
+                                      "SUN 00:00:00 00:30:00",
+                                      "SUN 00:30:00 01:00:00"
+                                  ]
+                              },
+                              "datetimeAvailable": {
+                                  "type": "array",
+                                  "items": {
+                                      "type": "string"
+                                  },
+                                  "example": [
+                                      "2024-01-15 00:00:00 00:30:00",
+                                      "2024-01-16 00:30:00 01:00:00"
+                                  ]
+                              }
+                          }
+                      }
+                  }
+              ],
+              "responses": {
+                  "201": {
+                      "description": "Confirmation added successfully"
+                  },
+                  "400": {
+                      "description": "Bad Request - errors like 'promise already confirmed', 'wrong weekday string', 'date out of range', 'wrong time id', 'wrong time range'",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "statusCode": {
+                                  "type": "integer",
+                                  "example": 4001
+                              },
+                              "message": {
+                                  "type": "string",
+                                  "example": "This promise has already been confirmed."
+                              }
+                          }
+                      }
+                  },
+                  "403": {
+                      "description": "Forbidden - when the user does not have the necessary permissions to confirm the promise",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "statusCode": {
+                                  "type": "integer",
+                                  "example": 4034
+                              },
+                              "message": {
+                                  "type": "string",
+                                  "example": "you do not have permission to confirm this promise as member."
+                              }
+                          }
+                      }
+                  },
+                  "500": {
+                      "description": "Internal Server Error - when an unexpected condition was encountered",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "message": {
+                                  "type": "string",
+                                  "example": "An error occurred while confirming the promise."
+                              },
+                              "error": {
+                                  "type": "string"
+                              }
+                          }
+                      }
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/confirm/update": {
+          "patch": {
+              "tags": ["confirm"],
+              "description": "This endpoint allows authorized members or non-members to update details of an already confirmed promise, including the confirmed place and notice.",
+              "parameters": [
+                  {
+                      "in": "body",
+                      "name": "body",
+                      "description": "Data for updating an existing confirmation",
+                      "required": true,
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "promiseId": {
+                                  "type": "integer",
+                                  "format": "int64",
+                                  "description": "The ID of the promise to be updated",
+                                  "example": 1
+                              },
+                              "place": {
+                                  "type": "string",
+                                  "description": "New place of the promise",
+                                  "example": "New Conference Room B"
+                              },
+                              "notice": {
+                                  "type": "string",
+                                  "description": "New notice details of the promise",
+                                  "example": "Revised meeting about project Y"
+                              },
+                              "weekAvailable": {
+                                  "type": "array",
+                                  "items": {
+                                      "type": "string"
+                                  },
+                                  "description": "List of weekdays available for week-based promises",
+                                  "example": ["MON", "WED"]
+                              },
+                              "dateAvailable": {
+                                  "type": "array",
+                                  "items": {
+                                      "type": "string",
+                                      "format": "date"
+                                  },
+                                  "description": "List of dates available for date-based promises",
+                                  "example": ["2024-02-15", "2024-02-16"]
+                              },
+                              "weekTimeAvailable": {
+                                  "type": "array",
+                                  "items": {
+                                      "type": "string"
+                                  },
+                                  "description": "List of weekdays and time slots available",
+                                  "example": [
+                                      "MON 08:00:00 08:30:00",
+                                      "TUE 09:00:00 09:30:00"
+                                  ]
+                              },
+                              "dateTimeAvailable": {
+                                  "type": "array",
+                                  "items": {
+                                      "type": "string"
+                                  },
+                                  "description": "List of dates and time slots available",
+                                  "example": [
+                                      "2024-02-15 08:00:00 08:30:00",
+                                      "2024-02-16 09:00:00 09:30:00"
+                                  ]
+                              }
+                          }
+                      }
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "Confirmation updated successfully"
+                  },
+                  "400": {
+                      "description": "Invalid request parameters",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "statusCode": {
+                                  "type": "integer"
+                              },
+                              "message": {
+                                  "type": "string"
+                              }
+                          }
+                      }
+                  },
+                  "403": {
+                      "description": "Forbidden - insufficient permissions to update confirmation",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "statusCode": {
+                                  "type": "integer"
+                              },
+                              "message": {
+                                  "type": "string"
+                              }
+                          }
+                      }
+                  },
+                  "404": {
+                      "description": "Promise not found",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "statusCode": {
+                                  "type": "integer"
+                              },
+                              "message": {
+                                  "type": "string"
+                              }
+                          }
+                      }
+                  },
+                  "500": {
+                      "description": "Internal server error",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "message": {
+                                  "type": "string"
+                              },
+                              "error": {
+                                  "type": "string"
+                              }
+                          }
+                      }
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
       }
   }
 }
