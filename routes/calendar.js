@@ -85,7 +85,7 @@ router.post("/add", authMember, async (req, res) => {
             );
         });
 
-        res.status(201).json({
+        return res.status(201).json({
             message:
                 "Schedule added successfully with multiple dates and times.",
         });

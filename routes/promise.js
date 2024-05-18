@@ -1717,7 +1717,14 @@ router.get("/myinfo/:promiseid", authMember, async (req, res) => {
             `);
             return res.status(200).json({
                 date_available: dates.map((item) => formatDateToUTC(item.date)),
-                datetime_available: datetimes.map((item) => item.datetime),
+                datetime_available: datetimes.map(
+                    (item) =>
+                        formatDateToUTC(item.datetime.split(" ")[0]) +
+                        " " +
+                        item.datetime.split(" ")[1] +
+                        " " +
+                        item.datetime.split(" ")[2]
+                ),
             });
         }
     } catch (err) {

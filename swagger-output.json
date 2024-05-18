@@ -1801,6 +1801,119 @@
                   }
               ]
           }
+      },
+      "/confirm/confirminfo/{promiseid}": {
+          "get": {
+              "tags": ["confirm"],
+              "description": "Fetches promise name, place, notice, and time information based on the promise type for confirmed promises, accessible only by members.",
+              "parameters": [
+                  {
+                      "name": "promiseid",
+                      "in": "path",
+                      "required": true,
+                      "type": "integer",
+                      "description": "The unique identifier of the promise"
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "Successful operation",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "promiseName": {
+                                  "type": "string",
+                                  "description": "The custom name of the promise given by the member"
+                              },
+                              "place": {
+                                  "type": "string",
+                                  "description": "Confirmed location of the promise"
+                              },
+                              "notice": {
+                                  "type": "string",
+                                  "description": "Notices related to the promise"
+                              },
+                              "weekConfirmed": {
+                                  "type": "array",
+                                  "items": {
+                                      "type": "string"
+                                  },
+                                  "description": "Weekdays confirmed for weekly promises without specific times"
+                              },
+                              "dateConfirmed": {
+                                  "type": "array",
+                                  "items": {
+                                      "type": "string",
+                                      "format": "date"
+                                  },
+                                  "description": "Specific dates confirmed for daily promises without specific times"
+                              },
+                              "weekTimeConfirmed": {
+                                  "type": "array",
+                                  "items": {
+                                      "type": "string"
+                                  },
+                                  "description": "Weekdays with specific times confirmed for weekly promises"
+                              },
+                              "dateTimeConfirmed": {
+                                  "type": "array",
+                                  "items": {
+                                      "type": "string"
+                                  },
+                                  "description": "Specific dates and times confirmed for daily promises"
+                              }
+                          }
+                      }
+                  },
+                  "403": {
+                      "description": "Non-member access denied",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "statusCode": {
+                                  "type": "integer"
+                              },
+                              "message": {
+                                  "type": "string"
+                              }
+                          }
+                      }
+                  },
+                  "404": {
+                      "description": "Promise not found",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "statusCode": {
+                                  "type": "integer"
+                              },
+                              "message": {
+                                  "type": "string"
+                              }
+                          }
+                      }
+                  },
+                  "500": {
+                      "description": "Internal server error",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "message": {
+                                  "type": "string"
+                              },
+                              "error": {
+                                  "type": "string"
+                              }
+                          }
+                      }
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
       }
   }
 }
