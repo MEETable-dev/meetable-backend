@@ -18,7 +18,7 @@ router.post("/add", authMember, async (req, res) => {
         // 이미 확정된 약속인지 확인
         const [existingConfirmation] = await db.promise().query(
             `
-            SELECT confirmed_id FROM confirmed WHERE promise_id = ?;
+            SELECT id FROM confirmed WHERE promise_id = ?;
         `,
             [promiseId]
         );
@@ -67,7 +67,7 @@ router.post("/add", authMember, async (req, res) => {
         }
 
         // confirmed 테이블에 정보 추가
-        const result = await db.promise().query(
+        const [result] = await db.promise().query(
             `
             INSERT INTO confirmed (promise_id, confirmed_place, confirmed_notice)
             VALUES (?, ?, ?)
@@ -76,6 +76,7 @@ router.post("/add", authMember, async (req, res) => {
         );
 
         const confirmedId = result.insertId;
+        console.log(confirmedId);
 
         if (weekvsdate === "W" && ampmvstime === "F") {
             const correctString = [
@@ -265,12 +266,12 @@ router.patch("/update", authMember, async (req, res) => {
         // 이미 확정된 약속인지 확인
         const [existingConfirmation] = await db.promise().query(
             `
-            SELECT confirmed_id FROM confirmed WHERE promise_id = ?;
+            SELECT id FROM confirmed WHERE promise_id = ?;
         `,
             [promiseId]
         );
 
-        const confirmedId = existingConfirmation[0]?.confirmed_id;
+        const confirmedId = existingConfirmation[0]?.id;
 
         if (existingConfirmation.length === 0) {
             return res.status(404).json({
@@ -320,9 +321,16 @@ router.patch("/update", authMember, async (req, res) => {
             `
             UPDATE confirmed
             SET confirmed_place = ?, confirmed_notice = ?
-            WHERE confirmed_id = ?
+            WHERE id = ?
         `,
             [place, notice, confirmedId]
+        );
+
+        await db.promise().query(
+            `
+            DELETE FROM confirmedtime
+            WHERE confirmed_id = ?`,
+            [confirmedId]
         );
 
         if (weekvsdate === "W" && ampmvstime === "F") {
@@ -341,9 +349,8 @@ router.patch("/update", authMember, async (req, res) => {
                 if (correctString.includes(weekday)) {
                     await db.promise().query(
                         `
-                        UPDATE confimedtime 
-                        SET week_confirmed = ?
-                        WHERE confirmed_id = ?
+                        INSERT INTO confimedtime (confirmed_id, week_confirmed)
+                        VALUES (?, ?)
                     `,
                         [weekday, confirmedId]
                     );
@@ -370,15 +377,15 @@ router.patch("/update", authMember, async (req, res) => {
                 const day = String(date.getDate()).padStart(2, "0");
                 return `${year}-${month}-${day}`;
             });
+
             for (let date of dateAvailable) {
                 if (validDatesArray.includes(date)) {
                     await db.promise().query(
                         `
-                        UPDATE confirmedtime 
-                        SET date_confirmed = ?
-                        WHERE confirmed_id = ?
-                    `,
-                        [date, confirmedId]
+                        INSERT INTO confirmedtime (confirmed_id, date_confirmed)
+                        VALUES (?, ?)
+                        `,
+                        [confirmedId, date]
                     );
                 } else {
                     return res.status(400).json({
@@ -413,9 +420,8 @@ router.patch("/update", authMember, async (req, res) => {
                         if (timeId) {
                             await db.promise().query(
                                 `
-                                UPDATE confirmedtime 
-                                SET week_confirmed = ?,  time_id = ?
-                                WHERE confirmed_id = ?
+                                INSERT INTO confirmedtime (confirmed_id, week_confirmed, time_id)
+                                VALUES (?, ?, ?)
                             `,
                                 [weekday, timeId, confirmedId]
                             );
@@ -465,9 +471,8 @@ router.patch("/update", authMember, async (req, res) => {
                         if (timeId) {
                             await db.promise().query(
                                 `
-                                UPDATE confirmedtime
-                                SET date_confirmed = ?, time_id = ?
-                                WHERE confirmed_id = ?
+                                INSERT INTO confirmedtime (confirmed_id, date_confirmed, time_id)
+                                VALUES (?, ?, ?)
                             `,
                                 [date, timeId, confirmedId]
                             );
