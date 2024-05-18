@@ -16,7 +16,7 @@ function generateRandomString(length) {
 // 날짜 포매팅 함수
 function formatDateToUTC(date) {
     const d = new Date(date);
-    d.setDate(date.getDate() + 1);
+    d.setDate(date.getDate());
     return d.toISOString().split("T")[0];
 }
 
