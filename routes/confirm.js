@@ -396,7 +396,7 @@ router.patch("/update", authMember, async (req, res) => {
                 if (correctString.includes(weekday)) {
                     await db.promise().query(
                         `
-                        INSERT INTO confimedtime (confirmed_id, week_confirmed)
+                        INSERT INTO confirmedtime (confirmed_id, week_confirmed)
                         VALUES (?, ?)
                     `,
                         [weekday, confirmedId]
@@ -590,6 +590,13 @@ router.get("/confirminfo/:promiseid", authMember, async (req, res) => {
         `,
             [promiseid]
         );
+        if (confirmedInfo.length === 0) {
+            return res.status(404).json({
+                statusCode: 4044,
+                message: "this promise has not been confirmed yet.",
+            });
+        }
+
         if (weekvsdate === "W" && ampmvstime === "F") {
             const [weekConfirmed] = await db.promise().query(
                 `

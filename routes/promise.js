@@ -1347,7 +1347,7 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
             `);
             dates.forEach((dateObj) => {
                 const date = new Date(dateObj.datetomeet);
-                date.setDate(date.getDate() + 1);
+                date.setDate(date.getDate());
                 dateObj.datetomeet = date.toISOString().split("T")[0]; // YYYY-MM-DD 형식으로 변환
             });
 
@@ -1417,7 +1417,7 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
 
             dates.forEach((dateObj) => {
                 const date = new Date(dateObj.datetomeet);
-                date.setDate(date.getDate() + 1);
+                date.setDate(date.getDate());
                 dateObj.datetomeet = date.toISOString().split("T")[0]; // YYYY-MM-DD 형식으로 변환
             });
 
