@@ -399,7 +399,7 @@ router.patch("/update", authMember, async (req, res) => {
                         INSERT INTO confirmedtime (confirmed_id, week_confirmed)
                         VALUES (?, ?)
                     `,
-                        [weekday, confirmedId]
+                        [confirmedId, weekday]
                     );
                 } else {
                     return res.status(400).json({
@@ -470,7 +470,7 @@ router.patch("/update", authMember, async (req, res) => {
                                 INSERT INTO confirmedtime (confirmed_id, week_confirmed, time_id)
                                 VALUES (?, ?, ?)
                             `,
-                                [weekday, timeId, confirmedId]
+                                [confirmedId, weekday, timeId]
                             );
                         } else {
                             return res.status(400).json({
@@ -521,7 +521,7 @@ router.patch("/update", authMember, async (req, res) => {
                                 INSERT INTO confirmedtime (confirmed_id, date_confirmed, time_id)
                                 VALUES (?, ?, ?)
                             `,
-                                [date, timeId, confirmedId]
+                                [confirmedId, date, timeId]
                             );
                         } else {
                             return res.status(400).json({
