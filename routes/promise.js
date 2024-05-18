@@ -1628,11 +1628,7 @@ router.get("/hover/:promiseid", authMember, async (req, res) => {
 });
 
 router.get("/myinfo/:promiseid", authMember, async (req, res) => {
-    const queryMonth =
-        req.query.month ||
-        new Date().toISOString().split("T")[0].split("-")[0] +
-            "-" +
-            new Date().toISOString().split("T")[0].split("-")[1]; // 월 쿼리가 없으면 이번 달 사용(2024-03)
+    const queryMonth = new Date(req.query.month).getMonth() + 1 || new Date().getMonth() + 1; // 월 쿼리가 없으면 이번 달 사용(3)
     const queryDate = req.query.date || new Date().toISOString().split("T")[0]; // 날짜 쿼리가 없으면 오늘 날짜 사용(2024-03-11)
     const promiseId = req.params.promiseid;
     const isMember = req.isMember;
