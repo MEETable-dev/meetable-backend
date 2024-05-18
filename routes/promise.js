@@ -1628,7 +1628,9 @@ router.get("/hover/:promiseid", authMember, async (req, res) => {
 });
 
 router.get("/myinfo/:promiseid", authMember, async (req, res) => {
-    const queryMonth = new Date(req.query.month).getMonth() + 1 || new Date().getMonth() + 1; // 월 쿼리가 없으면 이번 달 사용(3)
+    const queryMonth =
+        req.query.month ||
+        new Date().getFullYear() + "-" + (new Date().getMonth() + 1); // 월 쿼리가 없으면 이번 달 사용(3)
     const queryDate = req.query.date || new Date().toISOString().split("T")[0]; // 날짜 쿼리가 없으면 오늘 날짜 사용(2024-03-11)
     const promiseId = req.params.promiseid;
     const isMember = req.isMember;
@@ -1693,8 +1695,8 @@ router.get("/myinfo/:promiseid", authMember, async (req, res) => {
                 } AND YEAR(date_available) = ${queryMonth.split("-")[0]}
             `);
             return res.status(200).json({
-                date_available: dates.map(
-                    (item) => formatDateToUTC(item.date_available)
+                date_available: dates.map((item) =>
+                    formatDateToUTC(item.date_available)
                 ),
             });
         } else if (weekvsdate === "D" && ampmvstime === "T") {
@@ -1714,9 +1716,7 @@ router.get("/myinfo/:promiseid", authMember, async (req, res) => {
                 AND WEEK(date_available) = WEEK('${queryDate}')
             `);
             return res.status(200).json({
-                date_available: dates.map(
-                    (item) => formatDateToUTC(item.date)
-                ),
+                date_available: dates.map((item) => formatDateToUTC(item.date)),
                 datetime_available: datetimes.map((item) => item.datetime),
             });
         }
