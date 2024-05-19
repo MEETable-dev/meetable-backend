@@ -1914,6 +1914,166 @@
                   }
               ]
           }
+      },
+      "/confirm/copytocalendar": {
+          "post": {
+              "tags": ["confirm"],
+              "description": "This endpoint allows members to copy promise details directly into their calendar. It handles various configurations of promises including those based on date or weekday. Members can set repetition rules if the promise configuration allows.",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "required": true,
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "promiseid": {
+                                  "type": "integer",
+                                  "example": 1,
+                                  "description": "The ID of the promise to copy."
+                              },
+                              "color": {
+                                  "type": "integer",
+                                  "example": 5,
+                                  "description": "Color code for the calendar event."
+                              },
+                              "name": {
+                                  "type": "string",
+                                  "example": "Team Meeting",
+                                  "description": "Name of the calendar event."
+                              },
+                              "place": {
+                                  "type": "string",
+                                  "example": "Conference Room",
+                                  "description": "Location of the event."
+                              },
+                              "notice": {
+                                  "type": "string",
+                                  "example": "Bring reports.",
+                                  "description": "Additional notes or notices for the event."
+                              },
+                              "memo": {
+                                  "type": "string",
+                                  "example": "Quarterly planning meeting.",
+                                  "description": "Memo for the event."
+                              },
+                              "isreptition": {
+                                  "type": "string",
+                                  "example": "T",
+                                  "description": "Flag to indicate if the event should repeat."
+                              },
+                              "scheduleTimes": {
+                                  "type": "array",
+                                  "items": {
+                                      "type": "string"
+                                  },
+                                  "example": ["2024-01-15 09:00:00 11:00:00"],
+                                  "description": "List of times and dates for the event."
+                              },
+                              "reptitioncycle": {
+                                  "type": "integer",
+                                  "example": 4,
+                                  "description": "How often the event repeats in weeks."
+                              },
+                              "iscontinuous": {
+                                  "type": "string",
+                                  "example": "F",
+                                  "description": "Flag to indicate if the event repeats indefinitely."
+                              },
+                              "reptition_time": {
+                                  "type": "integer",
+                                  "example": 10,
+                                  "description": "Number of times the event should repeat."
+                              },
+                              "start_date": {
+                                  "type": "string",
+                                  "example": "2024-01-15",
+                                  "description": "Start date for the schedule, used for week-based schedules."
+                              },
+                              "end_date": {
+                                  "type": "string",
+                                  "example": "2024-06-15",
+                                  "description": "End date for the repeating event."
+                              }
+                          },
+                          "required": [
+                              "promiseid",
+                              "color",
+                              "name",
+                              "scheduleTimes"
+                          ]
+                      }
+                  }
+              ],
+              "responses": {
+                  "201": {
+                      "description": "Success - The promise details have been successfully copied to the calendar."
+                  },
+                  "400": {
+                      "description": "Bad Request - Invalid input or bad request parameters."
+                  },
+                  "403": {
+                      "description": "Forbidden - Access is denied due to invalid permissions."
+                  },
+                  "401": {
+                      "description": "Unauthorized - Member-only resource."
+                  },
+                  "500": {
+                      "description": "Internal Server Error - Unable to process the request due to server error."
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
+      "/confirm/cancel": {
+          "delete": {
+              "tags": ["confirm"],
+              "description": "Allows authorized members or nonmembers to cancel a confirmation of a promise. Access is restricted based on confirmation permissions.",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "required": true,
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "promiseid": {
+                                  "type": "integer",
+                                  "example": 1,
+                                  "description": "The ID of the promise to cancel confirmation for."
+                              }
+                          },
+                          "required": ["promiseid"]
+                      }
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "Success - The confirmation of the promise has been successfully canceled."
+                  },
+                  "400": {
+                      "description": "Bad Request - The request is malformed or missing necessary information."
+                  },
+                  "403": {
+                      "description": "Forbidden - The user does not have permission to cancel the confirmation."
+                  },
+                  "404": {
+                      "description": "Not Found - No member found associated with this promise."
+                  },
+                  "500": {
+                      "description": "Internal Server Error - An error occurred while processing the request."
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
       }
   }
 }

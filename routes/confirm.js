@@ -299,7 +299,7 @@ router.post("/add", authMember, async (req, res) => {
     }
 });
 
-// 확정 권한이  있는 회원/비회원은 확정을 수정할 수 있음(공지사항, 장소)
+// 확정 권한이 있는 회원/비회원은 확정을 수정할 수 있음(공지사항, 장소)
 router.patch("/update", authMember, async (req, res) => {
     const { promiseId, place, notice } = req.body;
 
@@ -676,13 +676,13 @@ router.get("/confirminfo/:promiseid", authMember, async (req, res) => {
     }
 });
 
-// 내 캘린더에 연동하기
+// 내 캘린더에 복사하기
 // 시간정보가 없는 약속의 경우 회원이 직접 추가해야함(기본 00~24)
 // 시간정보가 있는 약속은 시간정보를 수정할 수 없음
 // 날짜기준인 경우 반복 정보를 설정할 수 없음
 // 요일기준인 경우 반복 정보를 반드시 설정해야함(기본 반복없음, 날짜 입력해야함 언제 월요일인지)
 // 약속의 시간정보 여부, 날짜기준 요일 기준에 따라 받아오는 정보가 달라지고 만들어진 calendarId와 promiseId를 calendarpromise table에 mapping 시키는 것 외에는 캘린더에 일반정보를 추가하는 것과 동일하다.
-router.post("/linktocalendar", authMember, async (req, res) => {
+router.post("/copytocalendar", authMember, async (req, res) => {
     if (req.isMember === false) {
         return res.status(401).json({
             statusCode: 1000,
@@ -691,6 +691,24 @@ router.post("/linktocalendar", authMember, async (req, res) => {
     }
     // 권한 확인
     let memberPermission = [];
+
+    const memberId = req.memberId;
+    const {
+        promiseid,
+        color,
+        name,
+        place,
+        notice,
+        memo,
+        isreptition,
+        scheduleTimes,
+        reptitioncycle,
+        iscontinuous,
+        reptition_time,
+        start_date,
+        end_date,
+    } = req.body;
+
     if (req.isMember === true) {
         memberPermission = await db.promise().query(
             `
@@ -698,7 +716,7 @@ router.post("/linktocalendar", authMember, async (req, res) => {
              FROM memberjoin
              WHERE member_id = ? AND promise_id = ?
          `,
-            [req.memberId, promiseId]
+            [req.memberId, promiseid]
         );
 
         if (memberPermission[0].length === 0) {
@@ -715,22 +733,6 @@ router.post("/linktocalendar", authMember, async (req, res) => {
         }
     }
 
-    const memberId = req.memberId;
-    const {
-        promiseid,
-        color,
-        name,
-        place,
-        memo,
-        isreptition,
-        scheduleTimes,
-        reptitioncycle,
-        iscontinuous,
-        reptition_time,
-        start_date,
-        end_date,
-    } = req.body;
-
     const [promiseInfo] = await db.promise().query(
         `
         SELECT weekvsdate
@@ -738,14 +740,15 @@ router.post("/linktocalendar", authMember, async (req, res) => {
         [promiseid]
     );
 
-    const [confirmedInfo] = await db.promise().query(
+    const [memberjoinInfo] = await db.promise().query(
         `
-        SELECT id FROM confirmed WHERE promise_id = ?;
+        SELECT memberjoin_id FROM memberjoin WHERE promise_id = ? AND member_id = ?;
     `,
-        [promiseid]
+        [promiseid, memberId]
     );
 
     const { weekvsdate } = promiseInfo[0];
+    const memberjoinid = memberjoinInfo[0].memberjoin_id;
 
     // 입력값 검증
     if (!(color >= 0 && color <= 8) || !name || !Array.isArray(scheduleTimes)) {
@@ -790,8 +793,8 @@ router.post("/linktocalendar", authMember, async (req, res) => {
         // calendar 테이블에 데이터 삽입
         const [calendarResult] = await db.promise().query(
             `
-            INSERT INTO calendar (member_id, schedule_color, schedule_name, schedule_place, schedule_memo, isreptition, reptitioncycle, iscontinuous, reptition_time, end_date)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO calendar (member_id, schedule_color, schedule_name, schedule_place, schedule_memo, isreptition, reptitioncycle, iscontinuous, reptition_time, end_date, notice)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
             [
                 memberId,
@@ -804,16 +807,17 @@ router.post("/linktocalendar", authMember, async (req, res) => {
                 iscontinuous || "F",
                 reptition_time || 0,
                 end_date,
+                notice
             ]
         );
         const calendarId = calendarResult.insertId;
 
         await db.promise().query(
             `
-           INSERT INTO calendarpromise (calendar_id, confirmed_id)
+           INSERT INTO calendarpromise (calendar_id, memberjoin_id)
             VALUES (?, ?) 
         `,
-            [calendarId, confirmedInfo[0].id]
+            [calendarId, memberjoinid]
         );
 
         if (weekvsdate === "D") {
@@ -861,7 +865,78 @@ router.post("/linktocalendar", authMember, async (req, res) => {
 });
 
 // 확정권한이 있는 회원/비회원은 확정을 취소할 수 있음
-// 확정 취소 시 캘린더에 연동한 회원의 일정이 모두 삭제됨
-router.delete("/cancel", authMember, async (req, res) => {});
+router.delete("/cancel", authMember, async (req, res) => {
+    const { promiseid } = req.body;
+    // promise 테이블에서 weekvsdate, ampmvstime 값 가져오기
+    const [promiseSettings] = await db.promise().query(`
+        SELECT canallconfirm
+        FROM promise WHERE promise_id = ?;
+    `, [promiseid]);
+
+    // 이미 확정된 약속인지 확인
+    const [existingConfirmation] = await db.promise().query(
+        `
+        SELECT id FROM confirmed WHERE promise_id = ?;
+    `,
+        [promiseid]
+    );
+
+    if (existingConfirmation.length === 0) {
+        return res.status(404).json({
+            statusCode: 4044,
+            message: "this promise has not been confirmed yet.",
+        });
+    }
+
+    const { canallconfirm } =
+    promiseSettings[0];
+    if (req.isMember === true) {
+        memberPermission = await db.promise().query(
+            `
+            SELECT canconfirm
+            FROM memberjoin
+            WHERE member_id = ? AND promise_id = ?
+        `,
+            [req.memberId, promiseid]
+        );
+
+        if (memberPermission[0].length === 0) {
+            return res.status(403).json({
+                statusCode: 4033,
+                message: "no member found in this promise.",
+            });
+        } else if (memberPermission[0][0].canconfirm !== "T") {
+            return res.status(403).json({
+                statusCode: 4034,
+                message:
+                    "you do not have permission to confirm this promise as member.",
+            });
+        }
+    } else if (req.isMember === false) {
+        if (canallconfirm !== "T") {
+            return res.status(403).json({
+                statusCode: 4035,
+                message:
+                    "you do not have permission to confirm this promise as nonmember.",
+            });
+        }
+    }
+    try {
+        await db.promise().query(`
+            DELETE FROM confirmed WHERE promise_id = ?;`
+        , [promiseid]);
+        return res.status(200).json({
+            message: "confirmed promise canceled successfully."
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            message: "An error occurred while canceling the promise.",
+            error: error.message,
+        });
+    }
+   
+
+});
 
 module.exports = router;

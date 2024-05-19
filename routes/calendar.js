@@ -286,7 +286,7 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
     try {
         const schedules = await db.promise().query(
             `
-            SELECT calendar.id, calendar.schedule_color, calendar.schedule_name, calendar.isreptition, calendar.reptitioncycle, calendar.iscontinuous, calendar.reptition_time, calendar.end_date, calendartime.calendar_date
+            SELECT calendar.id, calendar.schedule_color, calendar.schedule_name, calendar.schedule_place, calendar.schedule_memo, calendar.notice, calendar.isreptition, calendar.reptitioncycle, calendar.iscontinuous, calendar.reptition_time, calendar.end_date, calendartime.calendar_date
             FROM calendar
             JOIN calendartime ON calendar.id = calendartime.calendar_id
             WHERE member_id = ?
@@ -296,7 +296,38 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
 
         let formattedResponse = {};
 
-        schedules[0].forEach((schedule) => {
+        for (const schedule of schedules[0]) {
+            const [isCopiedFromPromise] = await db.promise().query(
+                `
+                SELECT memberjoin_id FROM calendarpromise WHERE calendar_id = ?
+            `,
+                [schedule.id]
+            );
+            let isDeleted;
+            let promiseid;
+            if (isCopiedFromPromise.length > 0) {
+                const [trashId] = await db.promise().query(
+                    `
+                    SELECT folder_id FROM folder WHERE folder_name = 'trash' AND member_id = ?
+                `,
+                    [memberId]
+                );
+                promiseid = await db.promise().query(
+                    `
+                    SELECT mj.promise_id, p.promise_code 
+                    FROM memberjoin mj
+                    INNER JOIN promise p ON mj.promise_id = p.promise_id
+                    WHERE mj.memberjoin_id = ?;
+                `,
+                    [isCopiedFromPromise[0].memberjoin_id]
+                );
+                isDeleted = await db
+                    .promise()
+                    .query(
+                        `SELECT * FROM folder_promise WHERE folder_id =? AND promise_id = ?`,
+                        [trashId[0].folder_id, promiseid[0][0].promise_id]
+                    );
+            }
             let calendarDateString =
                 schedule.calendar_date instanceof Date
                     ? formatDateToUTC(schedule.calendar_date)
@@ -311,7 +342,6 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
                     new Date(month.split("-")[0], month.split("-")[1] + 1, 1)
             ) {
                 // 반복 일정에 대한 처리
-                // let currentDate = new Date(calendarDateString);
                 let endDate = endDateString
                     ? new Date(endDateString)
                     : new Date(calendarDateString);
@@ -331,11 +361,26 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
                         if (!formattedResponse[dayKey]) {
                             formattedResponse[dayKey] = [];
                         }
-                        formattedResponse[dayKey].push({
-                            id: schedule.id,
-                            color: schedule.schedule_color,
-                            name: schedule.schedule_name,
-                        });
+                        if (
+                            isCopiedFromPromise.length > 0 &&
+                            isDeleted[0].length === 0
+                        ) {
+                            formattedResponse[dayKey].push({
+                                id: schedule.id,
+                                color: schedule.schedule_color,
+                                name: schedule.schedule_name,
+                                promise:
+                                    promiseid[0].promise_id +
+                                    "_" +
+                                    promiseid[0].promise_code,
+                            });
+                        } else {
+                            formattedResponse[dayKey].push({
+                                id: schedule.id,
+                                color: schedule.schedule_color,
+                                name: schedule.schedule_name,
+                            });
+                        }
                     }
 
                     if (currentDate.getMonth() > new Date(month).getMonth()) {
@@ -362,19 +407,38 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
                     if (!formattedResponse[dateKey]) {
                         formattedResponse[dateKey] = [];
                     }
-                    formattedResponse[dateKey].push({
-                        id: schedule.id,
-                        color: schedule.schedule_color,
-                        name: schedule.schedule_name,
-                    });
+                    if (
+                        isCopiedFromPromise.length > 0 &&
+                        isDeleted[0].length === 0
+                    ) {
+                        formattedResponse[dateKey].push({
+                            id: schedule.id,
+                            color: schedule.schedule_color,
+                            name: schedule.schedule_name,
+                            place: schedule.schedule_place,
+                            memo: schedule.schedule_memo,
+                            notice: schedule.notice,
+                            promise:
+                                promiseid[0][0].promise_id +
+                                "_" +
+                                promiseid[0][0].promise_code,
+                        });
+                    } else {
+                        formattedResponse[dateKey].push({
+                            id: schedule.id,
+                            place: schedule.schedule_place,
+                            memo: schedule.schedule_memo,
+                            color: schedule.schedule_color,
+                            name: schedule.schedule_name,
+                        });
+                    }
                 }
             }
-        });
-
-        res.status(200).json(formattedResponse);
+        }
+        return res.status(200).json(formattedResponse);
     } catch (error) {
         console.error(error);
-        res.status(500).json({
+        return res.status(500).json({
             message: `Error retrieving schedule information: ${error.message}`,
         });
     }
