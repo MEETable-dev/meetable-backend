@@ -1320,13 +1320,30 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
             const targetMonth = queryMonth
                 ? new Date(`${queryMonth}-01`)
                 : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+            const prevMonth = new Date(
+                targetMonth.getFullYear(),
+                targetMonth.getMonth() - 1,
+                1
+            );
             const nextMonth = new Date(
                 targetMonth.getFullYear(),
                 targetMonth.getMonth() + 1,
                 1
             );
+            const afterNextMonth = new Date(
+                targetMonth.getFullYear(),
+                targetMonth.getMonth() + 2,
+                1
+            );
 
             let countByDate = {};
+
+            const prevMonthString = `${prevMonth.getFullYear()}-${String(
+                prevMonth.getMonth() + 1
+            ).padStart(2, "0")}-01`;
+            const afterNextMonthString = `${afterNextMonth.getFullYear()}-${String(
+                afterNextMonth.getMonth() + 1
+            ).padStart(2, "0")}-01`;
 
             const targetMonthString = `${targetMonth.getFullYear()}-${String(
                 targetMonth.getMonth() + 1
@@ -1343,7 +1360,7 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
 
             const [dates] = await db.promise().query(`
                     SELECT datetomeet FROM promisedate
-                    WHERE promise_id = ${promiseId} AND datetomeet > '${targetMonthString}' AND datetomeet <= '${nextMonthString}'
+                    WHERE promise_id = ${promiseId} AND datetomeet >= '${prevMonthString}' AND datetomeet < '${afterNextMonthString}'
             `);
             dates.forEach((dateObj) => {
                 const date = new Date(dateObj.datetomeet);
@@ -1385,6 +1402,7 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
             // 결과 반환
             return res.status(200).json(responseObject);
         } else if (weekvsdate === "D" && ampmvstime === "T") {
+            // TODO: 시간 정보 있을 때도 이전 달 또는 다음 달 정보를 가져오도록 수정(프론트 필요시)
             const targetDate = new Date(queryDate);
             const targetMonth = new Date(
                 targetDate.getFullYear(),
