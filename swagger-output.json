@@ -657,7 +657,9 @@
                       "name": "promiseid",
                       "in": "path",
                       "required": true,
-                      "type": "integer"
+                      "schema": {
+                          "type": "integer"
+                      }
                   },
                   {
                       "name": "month",
@@ -671,6 +673,22 @@
                       "name": "date",
                       "in": "query",
                       "description": "날짜기준, 시간 선택 O시 해당하는 날짜를 2024-03-11의 형태로 전달 없을 경우 오늘 날짜",
+                      "schema": {
+                          "type": "string"
+                      }
+                  },
+                  {
+                      "name": "memberIds",
+                      "in": "query",
+                      "description": "필수로 참여해야 하는 회원 ID 목록, 콤마로 구분된 문자열 형식 (예: 1,2,3)",
+                      "schema": {
+                          "type": "string"
+                      }
+                  },
+                  {
+                      "name": "nonMemberIds",
+                      "in": "query",
+                      "description": "필수로 참여해야 하는 비회원 ID 목록, 콤마로 구분된 문자열 형식 (예: 4,5,6)",
                       "schema": {
                           "type": "string"
                       }
