@@ -1194,6 +1194,10 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
     const promiseId = req.params.promiseid;
     const queryMonth = req.query.month;
     const queryDate = req.query.date || new Date().toISOString().split("T")[0]; // 날짜 쿼리가 없으면 오늘 날짜 사용(2024-03-11)
+    const memberIds = req.query.memberIds ? req.query.memberIds.split(",") : [];
+    const nonMemberIds = req.query.nonMemberIds
+        ? req.query.nonMemberIds.split(",")
+        : [];
     try {
         const [promise] = await db.promise().query(`
             SELECT promise_name, promise_code, weekvsdate, ampmvstime, start_time, end_time, canallconfirm 
@@ -1246,7 +1250,7 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
                     WHERE memberjoin_id IN (
                         SELECT memberjoin_id FROM memberjoin WHERE promise_id = ${promiseId}
                     )
-                    AND week_available = '${weekday}'
+                    AND week_available = '${weekday}' 
                 `);
 
                 const [nonMemberCounts] = await db.promise().query(`
@@ -1254,11 +1258,59 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
                     FROM nonmembertime 
                     WHERE nonmember_id IN (
                         SELECT nonmember_id FROM nonmember WHERE promise_id = ${promiseId}
-                    ) AND week_available = '${weekday}'
+                    ) AND week_available = '${weekday}' 
                 `);
                 // 회원 및 비회원의 수를 합산
                 countByWeekday[weekday] =
                     memberCounts[0].count + nonMemberCounts[0].count;
+            }
+            if (memberIds.length > 0 || nonMemberIds.length > 0) {
+                for (const weekday of weekdays) {
+                    const memberAvailableCondition = memberIds.length
+                        ? `AND memberjoin_id IN (SELECT memberjoin_id FROM memberjoin WHERE member_id IN (${memberIds.join(
+                              ","
+                          )}))`
+                        : "";
+                    const nonMemberAvailableCondition = memberIds.length
+                        ? `AND nonmember_id IN (${nonMemberIds.join(",")})`
+                        : "";
+
+                    const [memberAvailable] =
+                        memberIds.length > 0
+                            ? await db.promise().query(
+                                  `
+                        SELECT COUNT(*) AS count 
+                        FROM membertime 
+                        WHERE memberjoin_id IN (
+                            SELECT memberjoin_id FROM memberjoin WHERE promise_id = ?
+                        ) AND week_available = ? ${memberAvailableCondition}
+                    `,
+                                  [promiseId, weekday]
+                              )
+                            : [[{ count: 0 }]];
+
+                    const [nonMemberAvailable] =
+                        nonMemberIds.length > 0
+                            ? await db.promise().query(
+                                  `
+                        SELECT COUNT(*) AS count 
+                        FROM nonmembertime 
+                        WHERE nonmember_id IN (
+                            SELECT nonmember_id FROM nonmember WHERE promise_id = ?
+                        ) AND week_available = ? ${nonMemberAvailableCondition}
+                    `,
+                                  [promiseId, weekday]
+                              )
+                            : [[{ count: 0 }]];
+
+                    if (
+                        memberAvailable[0].count +
+                            nonMemberAvailable[0].count ===
+                        0
+                    ) {
+                        countByWeekday[weekday] = 0;
+                    }
+                }
             }
             // 최종 응답 객체 생성
             const responseObject = {
@@ -1287,7 +1339,7 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
                         FROM membertime
                         WHERE memberjoin_id IN (
                             SELECT memberjoin_id FROM memberjoin WHERE promise_id = ${promiseId}
-                        ) AND week_available = '${weekday}' AND time_id = ${timeslot.id}
+                        ) AND week_available = '${weekday}' AND time_id = ${timeslot.id} 
                     `);
 
                     const [nonMemberCounts] = await db.promise().query(`
@@ -1301,6 +1353,58 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
                     countByWeekdayAndTime[weekday][
                         `${timeslot.start_time} ${timeslot.end_time}`
                     ] = memberCounts[0].count + nonMemberCounts[0].count;
+                }
+            }
+            if (memberIds.length > 0 || nonMemberIds.length > 0) {
+                for (const weekday of weekdays) {
+                    for (const timeslot of timeslots) {
+                        const memberAvailableCondition = memberIds.length
+                            ? `AND memberjoin_id IN (SELECT memberjoin_id FROM memberjoin WHERE member_id IN (${memberIds.join(
+                                  ","
+                              )}))`
+                            : "";
+                        const nonMemberAvailableCondition = nonMemberIds.length
+                            ? `AND nonmember_id IN (${nonMemberIds.join(",")})`
+                            : "";
+
+                        const [memberAvailable] =
+                            memberIds.length > 0
+                                ? await db.promise().query(
+                                      `
+                                SELECT COUNT(*) AS count
+                                FROM membertime
+                                WHERE memberjoin_id IN (
+                                    SELECT memberjoin_id FROM memberjoin WHERE promise_id = ?
+                                ) AND week_available = ? AND time_id = ? ${memberAvailableCondition}
+                            `,
+                                      [promiseId, weekday, timeslot.id]
+                                  )
+                                : [[{ count: 0 }]];
+
+                        const [nonMemberAvailable] =
+                            nonMemberIds.length > 0
+                                ? await db.promise().query(
+                                      `
+                                SELECT COUNT(*) AS count
+                                FROM nonmembertime
+                                WHERE nonmember_id IN (
+                                    SELECT nonmember_id FROM nonmember WHERE promise_id = ?
+                                ) AND week_available = ? AND time_id = ? ${nonMemberAvailableCondition}
+                            `,
+                                      [promiseId, weekday, timeslot.id]
+                                  )
+                                : [[{ count: 0 }]];
+
+                        if (
+                            memberAvailable[0].count +
+                                nonMemberAvailable[0].count ===
+                            0
+                        ) {
+                            countByWeekdayAndTime[weekday][
+                                `${timeslot.start_time} ${timeslot.end_time}`
+                            ] = 0;
+                        }
+                    }
                 }
             }
             // 최종 응답 객체 생성
@@ -1388,6 +1492,55 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
 
                 countByDate[date.datetomeet] =
                     memberCounts[0].count + nonMemberCounts[0].count;
+            }
+            if (memberIds.length > 0 || nonMemberIds.length > 0) {
+                for (const dateObj of dates) {
+                    const date = dateObj.datetomeet;
+                    const memberAvailableCondition = memberIds.length
+                        ? `AND memberjoin_id IN (SELECT memberjoin_id FROM memberjoin WHERE member_id IN (${memberIds.join(
+                              ","
+                          )}))`
+                        : "";
+                    const nonMemberAvailableCondition = nonMemberIds.length
+                        ? `AND nonmember_id IN (${nonMemberIds.join(",")})`
+                        : "";
+
+                    const [memberAvailable] =
+                        memberIds.length > 0
+                            ? await db.promise().query(
+                                  `
+                            SELECT COUNT(*) AS count
+                            FROM membertime
+                            WHERE memberjoin_id IN (
+                                SELECT memberjoin_id FROM memberjoin WHERE promise_id = ?
+                            ) AND date_available = ? ${memberAvailableCondition}
+                        `,
+                                  [promiseId, date]
+                              )
+                            : [[{ count: 0 }]];
+
+                    const [nonMemberAvailable] =
+                        nonMemberIds.length > 0
+                            ? await db.promise().query(
+                                  `
+                            SELECT COUNT(*) AS count
+                            FROM nonmembertime
+                            WHERE nonmember_id IN (
+                                SELECT nonmember_id FROM nonmember WHERE promise_id = ?
+                            ) AND date_available = ? ${nonMemberAvailableCondition}
+                        `,
+                                  [promiseId, date]
+                              )
+                            : [[{ count: 0 }]];
+
+                    if (
+                        memberAvailable[0].count +
+                            nonMemberAvailable[0].count ===
+                        0
+                    ) {
+                        countByDate[date] = 0;
+                    }
+                }
             }
             // 최종 응답 객체 생성
             const responseObject = {
@@ -1485,6 +1638,61 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
                     ] = memberCounts[0].count + nonMemberCounts[0].count;
                 }
             }
+
+            if (memberIds.length > 0 || nonMemberIds.length > 0) {
+                for (const dateObj of dates) {
+                    const dateString = dateObj.datetomeet;
+                    for (const timeslot of timeslots) {
+                        const memberAvailableCondition = memberIds.length
+                            ? `AND memberjoin_id IN (SELECT memberjoin_id FROM memberjoin WHERE member_id IN (${memberIds.join(
+                                  ","
+                              )}))`
+                            : "";
+                        const nonMemberAvailableCondition = nonMemberIds.length
+                            ? `AND nonmember_id IN (${nonMemberIds.join(",")})`
+                            : "";
+
+                        const [memberAvailable] =
+                            memberIds.length > 0
+                                ? await db.promise().query(
+                                      `
+                                SELECT COUNT(*) AS count
+                                FROM membertime
+                                WHERE memberjoin_id IN (
+                                    SELECT memberjoin_id FROM memberjoin WHERE promise_id = ?
+                                ) AND date_available = ? AND time_id = ? ${memberAvailableCondition}
+                            `,
+                                      [promiseId, dateString, timeslot.id]
+                                  )
+                                : [[{ count: 0 }]];
+
+                        const [nonMemberAvailable] =
+                            nonMemberIds.length > 0
+                                ? await db.promise().query(
+                                      `
+                                SELECT COUNT(*) AS count
+                                FROM nonmembertime
+                                WHERE nonmember_id IN (
+                                    SELECT nonmember_id FROM nonmember WHERE promise_id = ?
+                                ) AND date_available = ? AND time_id = ? ${nonMemberAvailableCondition}
+                            `,
+                                      [promiseId, dateString, timeslot.id]
+                                  )
+                                : [[{ count: 0 }]];
+
+                        if (
+                            memberAvailable[0].count +
+                                nonMemberAvailable[0].count ===
+                            0
+                        ) {
+                            countByDateAndTime[dateString][
+                                `${timeslot.start_time} ${timeslot.end_time}`
+                            ] = 0;
+                        }
+                    }
+                }
+            }
+
             // 최종 응답 객체 생성
             const responseObject = {
                 promise_name: promise_name,
