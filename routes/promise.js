@@ -1264,50 +1264,88 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
                 countByWeekday[weekday] =
                     memberCounts[0].count + nonMemberCounts[0].count;
             }
+            // if (memberIds.length > 0 || nonMemberIds.length > 0) {
+            //     for (const weekday of weekdays) {
+            //         const memberAvailableCondition = memberIds.length
+            //             ? `AND memberjoin_id IN (SELECT memberjoin_id FROM memberjoin WHERE member_id IN (${memberIds.join(
+            //                   ","
+            //               )}))`
+            //             : "";
+            //         const nonMemberAvailableCondition = memberIds.length
+            //             ? `AND nonmember_id IN (${nonMemberIds.join(",")})`
+            //             : "";
+
+            //         const [memberAvailable] =
+            //             memberIds.length > 0
+            //                 ? await db.promise().query(
+            //                       `
+            //             SELECT COUNT(*) AS count 
+            //             FROM membertime 
+            //             WHERE memberjoin_id IN (
+            //                 SELECT memberjoin_id FROM memberjoin WHERE promise_id = ?
+            //             ) AND week_available = ? ${memberAvailableCondition}
+            //         `,
+            //                       [promiseId, weekday]
+            //                   )
+            //                 : [[{ count: 0 }]];
+
+            //         const [nonMemberAvailable] =
+            //             nonMemberIds.length > 0
+            //                 ? await db.promise().query(
+            //                       `
+            //             SELECT COUNT(*) AS count 
+            //             FROM nonmembertime 
+            //             WHERE nonmember_id IN (
+            //                 SELECT nonmember_id FROM nonmember WHERE promise_id = ?
+            //             ) AND week_available = ? ${nonMemberAvailableCondition}
+            //         `,
+            //                       [promiseId, weekday]
+            //                   )
+            //                 : [[{ count: 0 }]];
+
+            //         if (
+            //             memberAvailable[0].count +
+            //                 nonMemberAvailable[0].count ===
+            //             0
+            //         ) {
+            //             countByWeekday[weekday] = 0;
+            //         }
+            //     }
+            // }
             if (memberIds.length > 0 || nonMemberIds.length > 0) {
                 for (const weekday of weekdays) {
                     const memberAvailableCondition = memberIds.length
-                        ? `AND memberjoin_id IN (SELECT memberjoin_id FROM memberjoin WHERE member_id IN (${memberIds.join(
-                              ","
-                          )}))`
+                        ? `AND memberjoin_id IN (SELECT memberjoin_id FROM memberjoin WHERE member_id IN (${memberIds.join(",")}))`
                         : "";
-                    const nonMemberAvailableCondition = memberIds.length
+                    const nonMemberAvailableCondition = nonMemberIds.length
                         ? `AND nonmember_id IN (${nonMemberIds.join(",")})`
                         : "";
-
-                    const [memberAvailable] =
-                        memberIds.length > 0
-                            ? await db.promise().query(
-                                  `
-                        SELECT COUNT(*) AS count 
-                        FROM membertime 
-                        WHERE memberjoin_id IN (
-                            SELECT memberjoin_id FROM memberjoin WHERE promise_id = ?
-                        ) AND week_available = ? ${memberAvailableCondition}
-                    `,
-                                  [promiseId, weekday]
-                              )
-                            : [[{ count: 0 }]];
-
-                    const [nonMemberAvailable] =
-                        nonMemberIds.length > 0
-                            ? await db.promise().query(
-                                  `
-                        SELECT COUNT(*) AS count 
-                        FROM nonmembertime 
-                        WHERE nonmember_id IN (
-                            SELECT nonmember_id FROM nonmember WHERE promise_id = ?
-                        ) AND week_available = ? ${nonMemberAvailableCondition}
-                    `,
-                                  [promiseId, weekday]
-                              )
-                            : [[{ count: 0 }]];
-
-                    if (
-                        memberAvailable[0].count +
-                            nonMemberAvailable[0].count ===
-                        0
-                    ) {
+            
+                    const [memberAvailable] = memberIds.length > 0
+                        ? await db.promise().query(`
+                            SELECT memberjoin_id
+                            FROM membertime
+                            WHERE memberjoin_id IN (
+                                SELECT memberjoin_id FROM memberjoin WHERE promise_id = ?
+                            ) AND week_available = ? ${memberAvailableCondition}
+                            GROUP BY memberjoin_id
+                            HAVING COUNT(DISTINCT memberjoin_id) = ${memberIds.length}
+                        `, [promiseId, weekday])
+                        : [[{ count: 0 }]];
+            
+                    const [nonMemberAvailable] = nonMemberIds.length > 0
+                        ? await db.promise().query(`
+                            SELECT nonmember_id
+                            FROM nonmembertime
+                            WHERE nonmember_id IN (
+                                SELECT nonmember_id FROM nonmember WHERE promise_id = ?
+                            ) AND week_available = ? ${nonMemberAvailableCondition}
+                            GROUP BY nonmember_id
+                            HAVING COUNT(DISTINCT nonmember_id) = ${nonMemberIds.length}
+                        `, [promiseId, weekday])
+                        : [[{ count: 0 }]];
+            
+                    if (memberAvailable.length + nonMemberAvailable.length !== memberIds.length + nonMemberIds.length) {
                         countByWeekday[weekday] = 0;
                     }
                 }
@@ -1355,54 +1393,43 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
                     ] = memberCounts[0].count + nonMemberCounts[0].count;
                 }
             }
+            // 
             if (memberIds.length > 0 || nonMemberIds.length > 0) {
                 for (const weekday of weekdays) {
                     for (const timeslot of timeslots) {
                         const memberAvailableCondition = memberIds.length
-                            ? `AND memberjoin_id IN (SELECT memberjoin_id FROM memberjoin WHERE member_id IN (${memberIds.join(
-                                  ","
-                              )}))`
+                            ? `AND memberjoin_id IN (SELECT memberjoin_id FROM memberjoin WHERE member_id IN (${memberIds.join(",")}))`
                             : "";
                         const nonMemberAvailableCondition = nonMemberIds.length
                             ? `AND nonmember_id IN (${nonMemberIds.join(",")})`
                             : "";
-
-                        const [memberAvailable] =
-                            memberIds.length > 0
-                                ? await db.promise().query(
-                                      `
-                                SELECT COUNT(*) AS count
+            
+                        const [memberAvailable] = memberIds.length > 0
+                            ? await db.promise().query(`
+                                SELECT memberjoin_id
                                 FROM membertime
                                 WHERE memberjoin_id IN (
                                     SELECT memberjoin_id FROM memberjoin WHERE promise_id = ?
                                 ) AND week_available = ? AND time_id = ? ${memberAvailableCondition}
-                            `,
-                                      [promiseId, weekday, timeslot.id]
-                                  )
-                                : [[{ count: 0 }]];
-
-                        const [nonMemberAvailable] =
-                            nonMemberIds.length > 0
-                                ? await db.promise().query(
-                                      `
-                                SELECT COUNT(*) AS count
+                                GROUP BY memberjoin_id
+                                HAVING COUNT(DISTINCT memberjoin_id) = ${memberIds.length}
+                            `, [promiseId, weekday, timeslot.id])
+                            : [[{ count: 0 }]];
+            
+                        const [nonMemberAvailable] = nonMemberIds.length > 0
+                            ? await db.promise().query(`
+                                SELECT nonmember_id
                                 FROM nonmembertime
                                 WHERE nonmember_id IN (
                                     SELECT nonmember_id FROM nonmember WHERE promise_id = ?
                                 ) AND week_available = ? AND time_id = ? ${nonMemberAvailableCondition}
-                            `,
-                                      [promiseId, weekday, timeslot.id]
-                                  )
-                                : [[{ count: 0 }]];
-
-                        if (
-                            memberAvailable[0].count +
-                                nonMemberAvailable[0].count ===
-                            0
-                        ) {
-                            countByWeekdayAndTime[weekday][
-                                `${timeslot.start_time} ${timeslot.end_time}`
-                            ] = 0;
+                                GROUP BY nonmember_id
+                                HAVING COUNT(DISTINCT nonmember_id) = ${nonMemberIds.length}
+                            `, [promiseId, weekday, timeslot.id])
+                            : [[{ count: 0 }]];
+            
+                        if (memberAvailable.length + nonMemberAvailable.length !== memberIds.length + nonMemberIds.length) {
+                            countByWeekdayAndTime[weekday][`${timeslot.start_time} ${timeslot.end_time}`] = 0;
                         }
                     }
                 }
@@ -1493,51 +1520,90 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
                 countByDate[date.datetomeet] =
                     memberCounts[0].count + nonMemberCounts[0].count;
             }
+            // if (memberIds.length > 0 || nonMemberIds.length > 0) {
+            //     for (const dateObj of dates) {
+            //         const date = dateObj.datetomeet;
+            //         const memberAvailableCondition = memberIds.length
+            //             ? `AND memberjoin_id IN (SELECT memberjoin_id FROM memberjoin WHERE member_id IN (${memberIds.join(
+            //                   ","
+            //               )}))`
+            //             : "";
+            //         const nonMemberAvailableCondition = nonMemberIds.length
+            //             ? `AND nonmember_id IN (${nonMemberIds.join(",")})`
+            //             : "";
+
+            //         const [memberAvailable] =
+            //             memberIds.length > 0
+            //                 ? await db.promise().query(
+            //                       `
+            //                 SELECT COUNT(*) AS count
+            //                 FROM membertime
+            //                 WHERE memberjoin_id IN (
+            //                     SELECT memberjoin_id FROM memberjoin WHERE promise_id = ?
+            //                 ) AND date_available = ? ${memberAvailableCondition}
+            //             `,
+            //                       [promiseId, date]
+            //                   )
+            //                 : [[{ count: 0 }]];
+
+            //         const [nonMemberAvailable] =
+            //             nonMemberIds.length > 0
+            //                 ? await db.promise().query(
+            //                       `
+            //                 SELECT COUNT(*) AS count
+            //                 FROM nonmembertime
+            //                 WHERE nonmember_id IN (
+            //                     SELECT nonmember_id FROM nonmember WHERE promise_id = ?
+            //                 ) AND date_available = ? ${nonMemberAvailableCondition}
+            //             `,
+            //                       [promiseId, date]
+            //                   )
+            //                 : [[{ count: 0 }]];
+
+            //         if (
+            //             memberAvailable[0].count +
+            //                 nonMemberAvailable[0].count ===
+            //             0
+            //         ) {
+            //             countByDate[date] = 0;
+            //         }
+            //     }
+            // }
             if (memberIds.length > 0 || nonMemberIds.length > 0) {
                 for (const dateObj of dates) {
                     const date = dateObj.datetomeet;
                     const memberAvailableCondition = memberIds.length
-                        ? `AND memberjoin_id IN (SELECT memberjoin_id FROM memberjoin WHERE member_id IN (${memberIds.join(
-                              ","
-                          )}))`
+                        ? `AND memberjoin_id IN (SELECT memberjoin_id FROM memberjoin WHERE member_id IN (${memberIds.join(",")}))`
                         : "";
                     const nonMemberAvailableCondition = nonMemberIds.length
                         ? `AND nonmember_id IN (${nonMemberIds.join(",")})`
                         : "";
-
-                    const [memberAvailable] =
-                        memberIds.length > 0
-                            ? await db.promise().query(
-                                  `
-                            SELECT COUNT(*) AS count
+            
+                    const [memberAvailable] = memberIds.length > 0
+                        ? await db.promise().query(`
+                            SELECT memberjoin_id
                             FROM membertime
                             WHERE memberjoin_id IN (
                                 SELECT memberjoin_id FROM memberjoin WHERE promise_id = ?
                             ) AND date_available = ? ${memberAvailableCondition}
-                        `,
-                                  [promiseId, date]
-                              )
-                            : [[{ count: 0 }]];
-
-                    const [nonMemberAvailable] =
-                        nonMemberIds.length > 0
-                            ? await db.promise().query(
-                                  `
-                            SELECT COUNT(*) AS count
+                            GROUP BY memberjoin_id
+                            HAVING COUNT(DISTINCT memberjoin_id) = ${memberIds.length}
+                        `, [promiseId, date])
+                        : [[{ count: 0 }]];
+            
+                    const [nonMemberAvailable] = nonMemberIds.length > 0
+                        ? await db.promise().query(`
+                            SELECT nonmember_id
                             FROM nonmembertime
                             WHERE nonmember_id IN (
                                 SELECT nonmember_id FROM nonmember WHERE promise_id = ?
                             ) AND date_available = ? ${nonMemberAvailableCondition}
-                        `,
-                                  [promiseId, date]
-                              )
-                            : [[{ count: 0 }]];
-
-                    if (
-                        memberAvailable[0].count +
-                            nonMemberAvailable[0].count ===
-                        0
-                    ) {
+                            GROUP BY nonmember_id
+                            HAVING COUNT(DISTINCT nonmember_id) = ${nonMemberIds.length}
+                        `, [promiseId, date])
+                        : [[{ count: 0 }]];
+            
+                    if (memberAvailable.length + nonMemberAvailable.length !== memberIds.length + nonMemberIds.length) {
                         countByDate[date] = 0;
                     }
                 }
@@ -1639,55 +1705,96 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
                 }
             }
 
+            // if (memberIds.length > 0 || nonMemberIds.length > 0) {
+            //     for (const dateObj of dates) {
+            //         const dateString = dateObj.datetomeet;
+            //         for (const timeslot of timeslots) {
+            //             const memberAvailableCondition = memberIds.length
+            //                 ? `AND memberjoin_id IN (SELECT memberjoin_id FROM memberjoin WHERE member_id IN (${memberIds.join(
+            //                       ","
+            //                   )}))`
+            //                 : "";
+            //             const nonMemberAvailableCondition = nonMemberIds.length
+            //                 ? `AND nonmember_id IN (${nonMemberIds.join(",")})`
+            //                 : "";
+
+            //             const [memberAvailable] =
+            //                 memberIds.length > 0
+            //                     ? await db.promise().query(
+            //                           `
+            //                     SELECT COUNT(*) AS count
+            //                     FROM membertime
+            //                     WHERE memberjoin_id IN (
+            //                         SELECT memberjoin_id FROM memberjoin WHERE promise_id = ?
+            //                     ) AND date_available = ? AND time_id = ? ${memberAvailableCondition}
+            //                 `,
+            //                           [promiseId, dateString, timeslot.id]
+            //                       )
+            //                     : [[{ count: 0 }]];
+
+            //             const [nonMemberAvailable] =
+            //                 nonMemberIds.length > 0
+            //                     ? await db.promise().query(
+            //                           `
+            //                     SELECT COUNT(*) AS count
+            //                     FROM nonmembertime
+            //                     WHERE nonmember_id IN (
+            //                         SELECT nonmember_id FROM nonmember WHERE promise_id = ?
+            //                     ) AND date_available = ? AND time_id = ? ${nonMemberAvailableCondition}
+            //                 `,
+            //                           [promiseId, dateString, timeslot.id]
+            //                       )
+            //                     : [[{ count: 0 }]];
+
+            //             if (
+            //                 memberAvailable[0].count +
+            //                     nonMemberAvailable[0].count ===
+            //                 0
+            //             ) {
+            //                 countByDateAndTime[dateString][
+            //                     `${timeslot.start_time} ${timeslot.end_time}`
+            //                 ] = 0;
+            //             }
+            //         }
+            //     }
+            // }
             if (memberIds.length > 0 || nonMemberIds.length > 0) {
                 for (const dateObj of dates) {
                     const dateString = dateObj.datetomeet;
                     for (const timeslot of timeslots) {
                         const memberAvailableCondition = memberIds.length
-                            ? `AND memberjoin_id IN (SELECT memberjoin_id FROM memberjoin WHERE member_id IN (${memberIds.join(
-                                  ","
-                              )}))`
+                            ? `AND memberjoin_id IN (SELECT memberjoin_id FROM memberjoin WHERE member_id IN (${memberIds.join(",")}))`
                             : "";
                         const nonMemberAvailableCondition = nonMemberIds.length
                             ? `AND nonmember_id IN (${nonMemberIds.join(",")})`
                             : "";
-
-                        const [memberAvailable] =
-                            memberIds.length > 0
-                                ? await db.promise().query(
-                                      `
-                                SELECT COUNT(*) AS count
+            
+                        const [memberAvailable] = memberIds.length > 0
+                            ? await db.promise().query(`
+                                SELECT memberjoin_id
                                 FROM membertime
                                 WHERE memberjoin_id IN (
                                     SELECT memberjoin_id FROM memberjoin WHERE promise_id = ?
                                 ) AND date_available = ? AND time_id = ? ${memberAvailableCondition}
-                            `,
-                                      [promiseId, dateString, timeslot.id]
-                                  )
-                                : [[{ count: 0 }]];
-
-                        const [nonMemberAvailable] =
-                            nonMemberIds.length > 0
-                                ? await db.promise().query(
-                                      `
-                                SELECT COUNT(*) AS count
+                                GROUP BY memberjoin_id
+                                HAVING COUNT(DISTINCT memberjoin_id) = ${memberIds.length}
+                            `, [promiseId, dateString, timeslot.id])
+                            : [[{ count: 0 }]];
+            
+                        const [nonMemberAvailable] = nonMemberIds.length > 0
+                            ? await db.promise().query(`
+                                SELECT nonmember_id
                                 FROM nonmembertime
                                 WHERE nonmember_id IN (
                                     SELECT nonmember_id FROM nonmember WHERE promise_id = ?
                                 ) AND date_available = ? AND time_id = ? ${nonMemberAvailableCondition}
-                            `,
-                                      [promiseId, dateString, timeslot.id]
-                                  )
-                                : [[{ count: 0 }]];
-
-                        if (
-                            memberAvailable[0].count +
-                                nonMemberAvailable[0].count ===
-                            0
-                        ) {
-                            countByDateAndTime[dateString][
-                                `${timeslot.start_time} ${timeslot.end_time}`
-                            ] = 0;
+                                GROUP BY nonmember_id
+                                HAVING COUNT(DISTINCT nonmember_id) = ${nonMemberIds.length}
+                            `, [promiseId, dateString, timeslot.id])
+                            : [[{ count: 0 }]];
+            
+                        if (memberAvailable.length + nonMemberAvailable.length !== memberIds.length + nonMemberIds.length) {
+                            countByDateAndTime[dateString][`${timeslot.start_time} ${timeslot.end_time}`] = 0;
                         }
                     }
                 }
@@ -1961,10 +2068,6 @@ router.get("/myinfo/:promiseid", authMember, async (req, res) => {
         });
     }
 });
-
-router.get("/filterinfo/:promiseid", authMember, async (req, res) => {});
-
-router.post("/confirm", authMember, async (req, res) => {});
 
 router.get("/isparticipate/:promiseid", authMember, async (req, res) => {
     if (req.isMember === false) {
