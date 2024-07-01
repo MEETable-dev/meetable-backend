@@ -86,7 +86,7 @@ router.get("/totalpromise", authMember, async (req, res) => {
             let promises;
             let bookmarked;
             bookmarked = await db.promise().query(`
-                SELECT mj.member_promise_name, p.promise_id, p.promise_code, mj.is_bookmark, mj.last_bookmarked_at,
+                SELECT mj.member_promise_name, p.promise_id, p.promise_code, p.weekvsdate, p.ampmvstime, mj.is_bookmark, mj.last_bookmarked_at,
                 (SELECT COUNT(*) FROM memberjoin WHERE promise_id = p.promise_id) +
                 (SELECT COUNT(*) FROM nonmember WHERE promise_id = p.promise_id) AS participant_count
                 FROM folder f
@@ -98,7 +98,7 @@ router.get("/totalpromise", authMember, async (req, res) => {
             `);
             if (req.query.sortBy == "name") {
                 promises = await db.promise().query(`
-                    SELECT mj.member_promise_name, p.promise_id, p.promise_code, mj.is_bookmark,
+                    SELECT mj.member_promise_name, p.promise_id, p.promise_code, p.weekvsdate, p.ampmvstime, mj.is_bookmark,
                     (SELECT COUNT(*) FROM memberjoin WHERE promise_id = p.promise_id) +
                     (SELECT COUNT(*) FROM nonmember WHERE promise_id = p.promise_id) AS participant_count
                     FROM folder f
@@ -110,7 +110,7 @@ router.get("/totalpromise", authMember, async (req, res) => {
                 `);
             } else if (req.query.sortBy == "id") {
                 promises = await db.promise().query(`
-                    SELECT mj.member_promise_name, p.promise_id, p.promise_code, mj.is_bookmark,
+                    SELECT mj.member_promise_name, p.promise_id, p.promise_code, p.weekvsdate, p.ampmvstime, mj.is_bookmark,
                     (SELECT COUNT(*) FROM memberjoin WHERE promise_id = p.promise_id) +
                     (SELECT COUNT(*) FROM nonmember WHERE promise_id = p.promise_id) AS participant_count
                     FROM folder f
@@ -126,12 +126,16 @@ router.get("/totalpromise", authMember, async (req, res) => {
                     count: row.participant_count,
                     promiseName: row.member_promise_name,
                     promiseCode: row.promise_id + "_" + row.promise_code,
+                    weekvsdate: row.weekvsdate,
+                    ampmvstiome: row.ampmvstime,
                     isBookmark: row.is_bookmark,
                 }));
                 const promiseFormat = promises[0].map((row) => ({
                     count: row.participant_count,
                     promiseName: row.member_promise_name,
                     promiseCode: row.promise_id + "_" + row.promise_code,
+                    weekvsdate: row.weekvsdate,
+                    ampmvstiome: row.ampmvstime,
                     isBookmark: row.is_bookmark,
                 }));
                 res.status(200).send({
@@ -145,6 +149,8 @@ router.get("/totalpromise", authMember, async (req, res) => {
                     count: row.participant_count,
                     promiseName: row.member_promise_name,
                     promiseCode: row.promise_id + "_" + row.promise_code,
+                    weekvsdate: row.weekvsdate,
+                    ampmvstiome: row.ampmvstime,
                     isBookmark: row.is_bookmark,
                 }));
                 res.status(200).send({
