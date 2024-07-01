@@ -3,6 +3,12 @@ const router = express.Router();
 const db = require('../db');
 const authMember = require('../middlewares/authmember');
 
+router.get("/test", (req, res) => {
+    res.status(200).send({
+        message: "home route test",
+    });
+});
+
 //즐겨찾기 업데이트
 router.patch('/bookmark', authMember, async(req, res) => {
     if (req.isMember === true) {
