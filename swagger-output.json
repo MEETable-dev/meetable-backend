@@ -649,6 +649,42 @@
               ]
           }
       },
+      "/promise/verify": {
+          "post": {
+              "tags": ["promise"],
+              "description": "",
+              "parameters": [
+                  {
+                      "name": "body",
+                      "in": "body",
+                      "schema": {
+                          "type": "object",
+                          "properties": {
+                              "linkOrCode": {
+                                  "example": "https://meetable.site/:user/apmtdetail/:2_zcd3Z"
+                              }
+                          }
+                      }
+                  }
+              ],
+              "responses": {
+                  "200": {
+                      "description": "valid link or code"
+                  },
+                  "404": {
+                      "description": "link or code not found"
+                  },
+                  "401": {
+                      "description": "Unauthorized"
+                  }
+              },
+              "security": [
+                  {
+                      "bearerAuth": []
+                  }
+              ]
+          }
+      },
       "/promise/baseinfo/{promiseid}": {
           "get": {
               "tags": ["promise"],

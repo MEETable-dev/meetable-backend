@@ -2,13 +2,17 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const authMember = require('../middlewares/authmember');
+const req = require("express/lib/request");
 
 function generateRandomString(length) {
-    let result = '';
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = "";
+    const characters =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     const charactersLength = characters.length;
     for (let i = 0; i < length; i++) {
-        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+        result += characters.charAt(
+            Math.floor(Math.random() * charactersLength)
+        );
     }
     return result;
 }
@@ -21,27 +25,27 @@ function formatDateToUTC(date) {
 }
 
 // 새 약속잡기(로그인 한 경우 유저 이름 제공)
-router.get('/username', authMember, async(req, res) => {
+router.get("/username", authMember, async (req, res) => {
     if (req.isMember === true) {
         const [member] = await db.promise().query(`
             SELECT member_name
             FROM member
             WHERE member_id = ${req.memberId};
-        `)
+        `);
         res.status(200).send({
             name: member[0].member_name,
-            message: "user name provided"
-        })
+            message: "user name provided",
+        });
     } else {
         res.status(401).send({
             statusCode: 1000,
-            message: "access denied."
+            message: "access denied.",
         });
     }
 });
 
 // 새 약속 생성
-router.post('/create', authMember, async(req, res) => {
+router.post("/create", authMember, async (req, res) => {
     // 5자리 문자열 생성
     const randomString = generateRandomString(5);
     console.log(randomString);
@@ -54,40 +58,43 @@ router.post('/create', authMember, async(req, res) => {
                 "required body missing: promise_name or promise_name should not be null",
         });
     }
-    if (req.body.ampmvstime == 'F') {
+    if (req.body.ampmvstime == "F") {
         result = await db.promise().query(`
             INSERT INTO promise(promise_code, promise_name, weekvsdate, ampmvstime, canallconfirm)
             VALUES('${randomString}', '${req.body.promise_name}', '${req.body.weekvsdate}', '${req.body.ampmvstime}', '${req.body.canallconfirm}')
-        `)
+        `);
         promiseId = result[0].insertId;
-        if (req.body.weekvsdate == 'W') { // week로 받을 때 1차까지는 요일 추가 x
+        if (req.body.weekvsdate == "W") {
+            // week로 받을 때 1차까지는 요일 추가 x
             console.log(promiseId);
-        } else if (req.body.weekvsdate == 'D') {
+        } else if (req.body.weekvsdate == "D") {
             for (var date of req.body.date) {
                 await db.promise().query(`
                     INSERT INTO promisedate(promise_id, datetomeet)
                     VALUES('${promiseId}', '${date}')
-                `)
+                `);
             }
         }
-    } else if (req.body.ampmvstime == 'T') {
+    } else if (req.body.ampmvstime == "T") {
         result = await db.promise().query(`
             INSERT INTO promise(promise_code, promise_name, weekvsdate, ampmvstime, start_time, end_time, canallconfirm)
             VALUES('${randomString}', '${req.body.promise_name}', '${req.body.weekvsdate}', '${req.body.ampmvstime}', '${req.body.start_time}', '${req.body.end_time}', '${req.body.canallconfirm}')
-        `)
+        `);
         promiseId = result[0].insertId;
-        if (req.body.weekvsdate == 'W') { // week로 받을 때 1차까지는 요일 추가 x
-            console.log(promiseId)
-        } else if (req.body.weekvsdate == 'D') {
+        if (req.body.weekvsdate == "W") {
+            // week로 받을 때 1차까지는 요일 추가 x
+            console.log(promiseId);
+        } else if (req.body.weekvsdate == "D") {
             for (var date of req.body.date) {
                 await db.promise().query(`
                     INSERT INTO promisedate(promise_id, datetomeet)
                     VALUES('${promiseId}', '${date}')
-                `)
+                `);
             }
         }
     }
-    if (req.isMember === true) { //회원인 경우
+    if (req.isMember === true) {
+        //회원인 경우
         await db.promise().query(`
             INSERT INTO memberjoin(member_id, promise_id, member_promise_name, member_nickname, canconfirm)
             VALUES ('${req.memberId}', '${promiseId}', '${req.body.promise_name}', '${req.body.nickname}', 'T')
@@ -101,14 +108,15 @@ router.post('/create', authMember, async(req, res) => {
             INSERT INTO folder_promise(folder_id, promise_id)
             VALUES (${resultFolder[0].folder_id}, ${promiseId})
         `);
-        res.status(201).send({ 
+        res.status(201).send({
             promiseCode: promiseId + "_" + randomString,
-            message: "new promise generated"
+            message: "new promise generated",
         });
-    } else { //비회원인 경우
-        res.status(201).send({ 
+    } else {
+        //비회원인 경우
+        res.status(201).send({
             promiseCode: promiseId + "_" + randomString,
-            message: "new promise generated"
+            message: "new promise generated",
         });
     }
 });
@@ -821,7 +829,9 @@ async function deleteDateAvailable(
         `;
     }
     const [existingDates] = await db.promise().query(existingDatesQuery);
-    const existingDatesArray = existingDates.map((item) => formatDateToUTC(item.date_available));
+    const existingDatesArray = existingDates.map((item) =>
+        formatDateToUTC(item.date_available)
+    );
     console.log(existingDatesArray);
 
     try {
@@ -1354,40 +1364,55 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
                     ] = memberCounts[0].count + nonMemberCounts[0].count;
                 }
             }
-            // 
+            //
             if (memberIds.length > 0 || nonMemberIds.length > 0) {
                 for (const weekday of weekdays) {
                     for (const timeslot of timeslots) {
                         const memberAvailableCondition = memberIds.length
-                            ? `AND memberjoin_id IN (SELECT memberjoin_id FROM memberjoin WHERE member_id IN (${memberIds.join(",")}))`
+                            ? `AND memberjoin_id IN (SELECT memberjoin_id FROM memberjoin WHERE member_id IN (${memberIds.join(
+                                  ","
+                              )}))`
                             : "";
                         const nonMemberAvailableCondition = nonMemberIds.length
                             ? `AND nonmember_id IN (${nonMemberIds.join(",")})`
                             : "";
-            
-                        const [memberAvailable] = memberIds.length > 0
-                            ? await db.promise().query(`
+
+                        const [memberAvailable] =
+                            memberIds.length > 0
+                                ? await db.promise().query(
+                                      `
                                 SELECT COUNT(*) AS count
                                 FROM membertime
                                 WHERE memberjoin_id IN (
                                     SELECT memberjoin_id FROM memberjoin WHERE promise_id = ?
                                 ) AND week_available = ? AND time_id = ? ${memberAvailableCondition}
-                            `, [promiseId, weekday, timeslot.id])
-                            : [[{ count: 0 }]];
-            
-                        const [nonMemberAvailable] = nonMemberIds.length > 0
-                            ? await db.promise().query(`
+                            `,
+                                      [promiseId, weekday, timeslot.id]
+                                  )
+                                : [[{ count: 0 }]];
+
+                        const [nonMemberAvailable] =
+                            nonMemberIds.length > 0
+                                ? await db.promise().query(
+                                      `
                                 SELECT COUNT(*) AS count
                                 FROM nonmembertime
                                 WHERE nonmember_id IN (
                                     SELECT nonmember_id FROM nonmember WHERE promise_id = ?
                                 ) AND week_available = ? AND time_id = ? ${nonMemberAvailableCondition}
-                            `, [promiseId, weekday, timeslot.id])
-                            : [[{ count: 0 }]];
-            
-                        if ( memberAvailable[0].count + nonMemberAvailable[0].count <
-                            memberIds.length + nonMemberIds.length) {
-                            countByWeekdayAndTime[weekday][`${timeslot.start_time} ${timeslot.end_time}`] = 0;
+                            `,
+                                      [promiseId, weekday, timeslot.id]
+                                  )
+                                : [[{ count: 0 }]];
+
+                        if (
+                            memberAvailable[0].count +
+                                nonMemberAvailable[0].count <
+                            memberIds.length + nonMemberIds.length
+                        ) {
+                            countByWeekdayAndTime[weekday][
+                                `${timeslot.start_time} ${timeslot.end_time}`
+                            ] = 0;
                         }
                     }
                 }
@@ -1664,7 +1689,8 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
                                 : [[{ count: 0 }]];
 
                         if (
-                            memberAvailable[0].count + nonMemberAvailable[0].count <
+                            memberAvailable[0].count +
+                                nonMemberAvailable[0].count <
                             memberIds.length + nonMemberIds.length
                         ) {
                             countByDateAndTime[dateString][
@@ -1979,6 +2005,49 @@ router.get("/isparticipate/:promiseid", authMember, async (req, res) => {
         res.status(500).json({
             statusCode: 1234,
             message: `Error checking participation: ${error.message}`,
+        });
+    }
+});
+
+router.post("/verify", authMember, async (req, res) => {
+    if (req.isMember === false) {
+        return res.status(401).json({
+            statusCode: 1000,
+            message: "Access denied. Only members can use this api",
+        });
+    }
+    const linkOrCode = req.body.linkOrCode;
+    console.log(linkOrCode);
+    try {
+        const parsedCode = linkOrCode.startsWith("https://meetable.site")
+            ? linkOrCode.split("/").pop()?.replace(":", "")
+            : linkOrCode;
+        console.log(parsedCode);
+        const [promiseId, promiseCode] = parsedCode.split("_");
+        const [isValid] = await db.promise().query(
+            `
+            SELECT * FROM promise WHERE promise_id = ? AND promise_code = ?
+        `,
+            [promiseId, promiseCode]
+        );
+        if (isValid.length === 0) {
+            return res.status(404).send({
+                statusCode: 4044,
+                message: "Invalid link or code",
+                isValid: false,
+            });
+        } else {
+            return res.status(200).send({
+                message: "Valid link or code",
+                isValid: true,
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        return res.status(500).send({
+            statusCode: 1234,
+            message: "Failed to verify link or code",
+            error: error.message,
         });
     }
 });
