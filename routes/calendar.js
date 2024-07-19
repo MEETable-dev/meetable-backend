@@ -299,13 +299,13 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
         for (const schedule of schedules[0]) {
             const [isCopiedFromPromise] = await db.promise().query(
                 `
-                SELECT memberjoin_id FROM calendarpromise WHERE calendar_id = ?
+                SELECT confirmed_id FROM calendarpromise WHERE calendar_id = ?
             `,
                 [schedule.id]
             );
             let isDeleted;
             let promiseid;
-            if (isCopiedFromPromise.length > 0) {
+            if (isCopiedFromPromise.length !== 0) {
                 const [trashId] = await db.promise().query(
                     `
                     SELECT folder_id FROM folder WHERE folder_name = 'trash' AND member_id = ?
@@ -321,6 +321,7 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
                 `,
                     [isCopiedFromPromise[0].memberjoin_id]
                 );
+
                 isDeleted = await db
                     .promise()
                     .query(
