@@ -1105,9 +1105,9 @@ router.post("/link", authMember, async (req, res) => {
             message: "nonmember can't use this api",
         });
     } else {
-        const promiseId = req.body.promiseId; // _로 parsing된 값을 보내야함
-        const nickname = req.body.nickname; // 별명 또는 비회원 이름
-        const password = req.body.password; // 비회원 비밀번호 (회원일 경우 undefined, 비밀번호 없을 경우 null로 줘야함)
+        const promiseId = req.body.promiseId;
+        const nickname = req.body.nickname;
+        const password = req.body.password;
         const memberId = req.memberId;
 
         try {
@@ -1136,32 +1136,61 @@ router.post("/link", authMember, async (req, res) => {
             }
 
             const nonmemberId = nonMember[0].nonmember_id;
+            const memberJoinIdQuery = `(SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId})`;
 
-            // nonmembertime 정보를 membertime으로 옮기기
+            // nonmembertime 정보를 membertime으로 옮기기 전에 중복 확인
+            const checkDuplicateQuery = (columns) => `
+                SELECT 1 FROM membertime 
+                WHERE memberjoin_id = ${memberJoinIdQuery} 
+                AND ${columns
+                    .map((column) => `${column} IS NOT NULL`)
+                    .join(" AND ")}
+            `;
+
+            const insertMemberTimeQuery = (columns, values) => `
+                INSERT INTO membertime (${columns.join(", ")})
+                SELECT ${[memberJoinIdQuery, ...values].join(", ")}
+                FROM nonmembertime 
+                WHERE nonmember_id = ${nonmemberId}
+                AND NOT EXISTS (${checkDuplicateQuery(columns)});
+            `;
+
             if (weekvsdate === "W" && ampmvstime === "F") {
-                await db.promise().query(`
-                    INSERT INTO membertime (memberjoin_id, week_available)
-                    SELECT (SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}), week_available
-                    FROM nonmembertime WHERE nonmember_id = ${nonmemberId}
-                `);
+                await db
+                    .promise()
+                    .query(
+                        insertMemberTimeQuery(
+                            ["memberjoin_id", "week_available"],
+                            ["week_available"]
+                        )
+                    );
             } else if (weekvsdate === "D" && ampmvstime === "F") {
-                await db.promise().query(`
-                    INSERT INTO membertime (memberjoin_id, date_available)
-                    SELECT (SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}), date_available
-                    FROM nonmembertime WHERE nonmember_id = ${nonmemberId}
-                `);
+                await db
+                    .promise()
+                    .query(
+                        insertMemberTimeQuery(
+                            ["memberjoin_id", "date_available"],
+                            ["date_available"]
+                        )
+                    );
             } else if (weekvsdate === "W" && ampmvstime === "T") {
-                await db.promise().query(`
-                    INSERT INTO membertime (memberjoin_id, week_available, time_id)
-                    SELECT (SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}), week_available, time_id
-                    FROM nonmembertime WHERE nonmember_id = ${nonmemberId}
-                `);
+                await db
+                    .promise()
+                    .query(
+                        insertMemberTimeQuery(
+                            ["memberjoin_id", "week_available", "time_id"],
+                            ["week_available", "time_id"]
+                        )
+                    );
             } else if (weekvsdate === "D" && ampmvstime === "T") {
-                await db.promise().query(`
-                    INSERT INTO membertime (memberjoin_id, date_available, time_id)
-                    SELECT (SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId}), date_available, time_id
-                    FROM nonmembertime WHERE nonmember_id = ${nonmemberId}
-                `);
+                await db
+                    .promise()
+                    .query(
+                        insertMemberTimeQuery(
+                            ["memberjoin_id", "date_available", "time_id"],
+                            ["date_available", "time_id"]
+                        )
+                    );
             }
 
             // 옮긴 후, nonmembertime 및 nonmember 정보 삭제
