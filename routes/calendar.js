@@ -239,11 +239,7 @@ router.patch("/update", authMember, async (req, res) => {
             res.status(200).json({
                 message: "Specific date schedule updated successfully.",
             });
-        } else if (
-            updateType === "single" &&
-            specificDate &&
-            isreptition === "F"
-        ) {
+        } else if (updateType === "single" && isreptition === "F") {
             // 단일 날짜의 반복되지 않는 일정 업데이트
             const [date, startTime, endTime] = scheduleTimes[0].split(" ");
 
@@ -370,7 +366,6 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
                 .get(mapping.child_calendar_id)
                 .push(mapping.parent_calendar_id);
         });
-        console.log(childMappingMap);
 
         let formattedResponse = {};
 
