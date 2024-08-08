@@ -169,6 +169,7 @@ router.patch("/update", authMember, async (req, res) => {
         iscontinuous,
         reptition_time,
         end_date,
+        updateType,
     } = req.body;
 
     // 입력값 검증
@@ -202,54 +203,109 @@ router.patch("/update", authMember, async (req, res) => {
     }
 
     try {
-        // Update the main calendar entry
-        await db.promise().query(
-            `
+        if (updateType === "single" && isreptition === "T") {
+            // 반복 일정에서 특정 날짜 분리
+            const [date, startTime, endTime] = scheduleTimes[0].split(" ");
+
+            // 기존 일정에서 특정 날짜 제외하고 새로운 일정 생성
+            const [result] = await db.promise().query(
+                `
+                 INSERT INTO calendar (member_id, schedule_color, schedule_name, schedule_place, schedule_memo, notice, isreptition, reptitioncycle, iscontinuous, reptition_time, end_date)
+                 SELECT member_id, ?, ?, ?, ?, notice, 'F', 0, 'F', 0, end_date
+                 FROM calendar
+                 WHERE id = ?
+                 `,
+                [color, name, place, memo, calendarId]
+            );
+
+            const newCalendarId = result.insertId;
+
+            await db.promise().query(
+                `
+                 INSERT INTO calendartime (calendar_id, calendar_date, start_time, end_time)
+                 VALUES (?, ?, ?, ?)
+                 `,
+                [newCalendarId, date, startTime, endTime]
+            );
+
+            await db.promise().query(
+                `
+                 INSERT INTO calendar_mapping (parent_calendar_id, child_calendar_id)
+                 VALUES (?, ?)
+                 `,
+                [calendarId, newCalendarId]
+            );
+
+            res.status(200).json({
+                message: "Specific date schedule updated successfully.",
+            });
+        } else if (updateType === "single" && isreptition === "F") {
+            // 단일 날짜의 반복되지 않는 일정 업데이트
+            const [date, startTime, endTime] = scheduleTimes[0].split(" ");
+
+            await db.promise().query(
+                `
+                UPDATE calendartime 
+                SET start_time = ?, end_time = ?
+                WHERE calendar_id = ? AND calendar_date = ?
+            `,
+                [startTime, endTime, calendarId, date]
+            );
+
+            res.status(200).json({
+                message:
+                    "Non-repeating schedule for a specific date updated successfully.",
+            });
+        } else {
+            // Update the main calendar entry
+            await db.promise().query(
+                `
             UPDATE calendar 
             SET schedule_color = ?, schedule_name = ?, schedule_place = ?, schedule_memo = ?, isreptition = ?, reptitioncycle = ?, iscontinuous = ?, reptition_time = ?, end_date = ?
             WHERE id = ? AND member_id = ?
         `,
-            [
-                color,
-                name,
-                place,
-                memo,
-                isreptition || "F",
-                reptitioncycle || 0,
-                iscontinuous || "F",
-                reptition_time || 0,
-                end_date,
-                calendarId,
-                req.memberId,
-            ]
-        );
+                [
+                    color,
+                    name,
+                    place,
+                    memo,
+                    isreptition || "F",
+                    reptitioncycle || 0,
+                    iscontinuous || "F",
+                    reptition_time || 0,
+                    end_date,
+                    calendarId,
+                    req.memberId,
+                ]
+            );
 
-        // Delete old times associated with this calendar
-        await db.promise().query(
-            `
-            DELETE FROM calendartime WHERE calendar_id = ?
-        `,
-            [calendarId]
-        );
-
-        // Insert new times
-        scheduleTimes.forEach(async (scheduleTime) => {
-            const [date, start, end] = scheduleTime.split(" ");
-            const startTime = start.replace("-", ":");
-            const endTime = end.replace("-", ":");
-
+            // Delete old times associated with this calendar
             await db.promise().query(
                 `
+            DELETE FROM calendartime WHERE calendar_id = ?
+        `,
+                [calendarId]
+            );
+
+            // Insert new times
+            scheduleTimes.forEach(async (scheduleTime) => {
+                const [date, start, end] = scheduleTime.split(" ");
+                const startTime = start.replace("-", ":");
+                const endTime = end.replace("-", ":");
+
+                await db.promise().query(
+                    `
                 INSERT INTO calendartime (calendar_id, calendar_date, start_time, end_time)
                 VALUES (?, ?, ?, ?)
             `,
-                [calendarId, date, startTime, endTime]
-            );
-        });
+                    [calendarId, date, startTime, endTime]
+                );
+            });
 
-        res.status(200).json({
-            message: "calendar schedule updated successfully.",
-        });
+            res.status(200).json({
+                message: "calendar schedule updated successfully.",
+            });
+        }
     } catch (error) {
         console.error(error);
         res.status(500).json({
@@ -293,6 +349,23 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
         `,
             [memberId]
         );
+
+        const childMappings = await db.promise().query(
+            `
+            SELECT parent_calendar_id, child_calendar_id FROM calendar_mapping WHERE parent_calendar_id IN (SELECT id FROM calendar WHERE member_id = ?)
+        `,
+            [memberId]
+        );
+
+        const childMappingMap = new Map();
+        childMappings[0].forEach((mapping) => {
+            if (!childMappingMap.has(mapping.child_calendar_id)) {
+                childMappingMap.set(mapping.child_calendar_id, []);
+            }
+            childMappingMap
+                .get(mapping.child_calendar_id)
+                .push(mapping.parent_calendar_id);
+        });
 
         let formattedResponse = {};
 
@@ -338,6 +411,7 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
                 : null;
             let currentDate = new Date(calendarDateString);
             let iscontinuous = schedule.iscontinuous === "T";
+            const parentIds = childMappingMap.get(schedule.id);
             if (
                 schedule.isreptition === "T" &&
                 currentDate <
@@ -376,6 +450,8 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
                         ) {
                             formattedResponse[dayKey].push({
                                 id: schedule.id,
+                                place: schedule.schedule_place,
+                                memo: schedule.schedule_memo,
                                 color: schedule.schedule_color,
                                 name: schedule.schedule_name,
                                 promise:
@@ -386,6 +462,8 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
                         } else {
                             formattedResponse[dayKey].push({
                                 id: schedule.id,
+                                place: schedule.schedule_place,
+                                memo: schedule.schedule_memo,
                                 color: schedule.schedule_color,
                                 name: schedule.schedule_name,
                             });
@@ -394,7 +472,6 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
 
                     if (currentDate.getMonth() > new Date(month).getMonth()) {
                         // 다음 달로 넘어갔으므로 중단
-                        console.log("next month");
                         break;
                     }
 
@@ -416,6 +493,13 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
                     let dateKey = calendarDateString;
                     if (!formattedResponse[dateKey]) {
                         formattedResponse[dateKey] = [];
+                    }
+                    if (parentIds) {
+                        formattedResponse[dateKey] = formattedResponse[
+                            dateKey
+                        ].filter(
+                            (schedule) => !parentIds.includes(schedule.id)
+                        );
                     }
                     if (
                         isCopiedFromPromise.length > 0 &&
@@ -445,7 +529,16 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
                 }
             }
         }
-        return res.status(200).json(formattedResponse);
+        // Sort formattedResponse by date
+        const sortedResponse = Object.keys(formattedResponse).sort();
+
+        // Create a new object with sorted dates
+        const orderedResponse = {};
+        for (const date of sortedResponse) {
+            orderedResponse[date] = formattedResponse[date];
+        }
+
+        return res.status(200).json(orderedResponse);
     } catch (error) {
         console.error(error);
         return res.status(500).json({
