@@ -337,6 +337,7 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
                 ? formatDateToUTC(schedule.end_date)
                 : null;
             let currentDate = new Date(calendarDateString);
+            let iscontinuous = schedule.iscontinuous === "T";
             if (
                 schedule.isreptition === "T" &&
                 currentDate <
@@ -351,9 +352,16 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
 
                 while (
                     currentDate <= endDate ||
-                    schedule.iscontinuous === "T" ||
+                    iscontinuous ||
                     repeatCount > 0
                 ) {
+                    if (iscontinuous && repeatCycle === 0) {
+                        return res.status(400).json({
+                            statusCode: 1025,
+                            message:
+                                "Invalid repetition cycle setting. please check database. repeatcycle should be greater than 0.",
+                        });
+                    }
                     let yearMonth = `${currentDate.getFullYear()}-${String(
                         currentDate.getMonth() + 1
                     ).padStart(2, "0")}`;
@@ -386,6 +394,7 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
 
                     if (currentDate.getMonth() > new Date(month).getMonth()) {
                         // 다음 달로 넘어갔으므로 중단
+                        console.log("next month");
                         break;
                     }
 
