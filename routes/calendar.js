@@ -38,13 +38,21 @@ router.post("/add", authMember, async (req, res) => {
         const isContinuousValid = iscontinuous === "T";
         const isReptitionTimeValid = reptition_time > 0;
         const isEndDateValid = end_date != null; // end_date가 문자열 형식의 날짜여야 함
-
+        const isReptitionCycleValid = reptitioncycle > 0;
         // 적어도 하나의 값이 기본값이 아니어야 함
         if (!isContinuousValid && !isReptitionTimeValid && !isEndDateValid) {
             return res.status(400).json({
                 statusCode: 1025,
                 message:
                     "Invalid repetition settings. Provide a valid 'iscontinuous', 'reptition_time', or 'end_date' value.",
+            });
+        }
+
+        if (!isReptitionCycleValid) {
+            return res.status(400).json({
+                statusCode: 1025,
+                message:
+                    "Invalid repetition cycle setting. Please provide a valid 'reptitioncycle' value.",
             });
         }
     }
@@ -191,13 +199,20 @@ router.patch("/update", authMember, async (req, res) => {
         const isContinuousValid = iscontinuous === "T";
         const isReptitionTimeValid = reptition_time > 0;
         const isEndDateValid = end_date != null; // end_date가 문자열 형식의 날짜여야 함
-
+        const isReptitionCycleValid = reptitioncycle > 0;
         // 적어도 하나의 값이 기본값이 아니어야 함
         if (!isContinuousValid && !isReptitionTimeValid && !isEndDateValid) {
             return res.status(400).json({
                 statusCode: 1025,
                 message:
                     "Invalid repetition settings. Provide a valid 'iscontinuous', 'reptition_time', or 'end_date' value.",
+            });
+        }
+        if (!isReptitionCycleValid) {
+            return res.status(400).json({
+                statusCode: 1025,
+                message:
+                    "Invalid repetition cycle setting. Please provide a valid 'reptitioncycle' value.",
             });
         }
     }
@@ -423,19 +438,19 @@ router.get("/scheduleinfo", authMember, async (req, res) => {
                     : new Date(calendarDateString);
                 let repeatCycle = schedule.reptitioncycle * 7;
                 let repeatCount = schedule.reptition_time;
+                if (repeatCycle === 0) {
+                    return res.status(400).json({
+                        statusCode: 1025,
+                        message:
+                            "Invalid repetition cycle setting. please check database. repeatcycle should be greater than 0.",
+                    });
+                }
 
                 while (
                     currentDate <= endDate ||
                     iscontinuous ||
                     repeatCount > 0
                 ) {
-                    if (iscontinuous && repeatCycle === 0) {
-                        return res.status(400).json({
-                            statusCode: 1025,
-                            message:
-                                "Invalid repetition cycle setting. please check database. repeatcycle should be greater than 0.",
-                        });
-                    }
                     let yearMonth = `${currentDate.getFullYear()}-${String(
                         currentDate.getMonth() + 1
                     ).padStart(2, "0")}`;
