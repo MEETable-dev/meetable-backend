@@ -775,7 +775,7 @@ async function deleteWeekAvailable(
                     } else if (isMember === false) {
                         await db.promise().query(`
                             DELETE FROM ${tableName}
-                            WHERE nonmember_id = ${memberId} AND promise_id = ${promiseId}
+                            WHERE nonmember_id = ${memberId}
                             AND week_available = '${weekday}';
                         `);
                     }
@@ -850,7 +850,7 @@ async function deleteDateAvailable(
                     } else if (isMember === false) {
                         await db.promise().query(`
                             DELETE FROM ${tableName}
-                            WHERE nonmember_id = ${memberId} AND promise_id = ${promiseId}
+                            WHERE nonmember_id = ${memberId} 
                             AND date_available = '${date}';
                         `);
                     }
