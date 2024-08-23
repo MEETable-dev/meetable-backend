@@ -563,26 +563,45 @@ router.patch("/update", authMember, async (req, res) => {
 // 확정된 일정을 조회할 때도 사용
 router.get("/confirminfo/:promiseid", authMember, async (req, res) => {
     const promiseid = parseInt(req.params.promiseid);
-    // if (req.isMember == false) {
-    //     res.status(403).send({
-    //         statusCode: 1802,
-    //         message: "nonmember can't use this api",
-    //     });
-    // }
-    // promiseid = parseInt(promiseid);
     try {
-        const [promiseInfo] = await db.promise().query(
-            `
-            SELECT 
-                memberjoin.member_promise_name,
-                promise.weekvsdate,
-                promise.ampmvstime
-            FROM memberjoin
-            INNER JOIN promise ON memberjoin.promise_id = promise.promise_id
-            WHERE memberjoin.member_id = ? AND memberjoin.promise_id = ?;
-        `,
-            [req.memberId, promiseid]
-        );
+        let promiseInfo;
+
+        // Check if the user is a member and fetch relevant promise info
+        if (req.isMember === true) {
+            [promiseInfo] = await db.promise().query(
+                `
+                SELECT 
+                    memberjoin.member_promise_name,
+                    promise.weekvsdate,
+                    promise.ampmvstime
+                FROM memberjoin
+                INNER JOIN promise ON memberjoin.promise_id = promise.promise_id
+                WHERE memberjoin.member_id = ? AND memberjoin.promise_id = ?;
+            `,
+                [req.memberId, promiseid]
+            );
+        } else if (req.isMember === false) {
+            // Fetch promise info for non-member
+            [promiseInfo] = await db.promise().query(
+                `
+                SELECT 
+                    nonmember.nonmember_name AS member_promise_name,
+                    promise.weekvsdate,
+                    promise.ampmvstime
+                FROM nonmember
+                INNER JOIN promise ON nonmember.promise_id = promise.promise_id
+                WHERE nonmember.nonmember_id = ? AND nonmember.promise_id = ?;
+            `,
+                [req.nonmemberId, promiseid]
+            );
+        }
+
+        if (promiseInfo.length === 0) {
+            return res.status(404).json({
+                statusCode: 4044,
+                message: "Promise not found.",
+            });
+        }
         const { member_promise_name, weekvsdate, ampmvstime } = promiseInfo[0];
         const [confirmedInfo] = await db.promise().query(
             `
