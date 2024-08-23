@@ -1114,118 +1114,137 @@ router.post("/link", authMember, async (req, res) => {
             statusCode: 1802,
             message: "nonmember can't use this api",
         });
-    } else {
-        const promiseId = req.body.promiseId;
-        const nickname = req.body.nickname;
-        const password = req.body.password;
-        const memberId = req.memberId;
+    }
 
-        try {
-            const [promiseSettings] = await db.promise().query(`
-                SELECT weekvsdate, ampmvstime FROM promise WHERE promise_id = ${promiseId}`);
+    const { promiseId, nickname, password } = req.body;
+    const memberId = req.memberId;
 
-            if (promiseSettings.length === 0) {
-                return res.status(404).send({
-                    statusCode: 1809,
-                    message: "promise not found.",
-                });
-            }
+    try {
+        // 약속 설정 가져오기
+        const [promiseSettings] = await db
+            .promise()
+            .query(
+                `SELECT weekvsdate, ampmvstime FROM promise WHERE promise_id = ?`,
+                [promiseId]
+            );
 
-            const { weekvsdate, ampmvstime } = promiseSettings[0];
-
-            const [nonMember] = await db.promise().query(`
-                SELECT nonmember_id FROM nonmember 
-                WHERE nonmember_name = '${nickname}' AND nonmember_pwd = '${password}' AND promise_id = ${promiseId}
-            `);
-
-            if (nonMember.length === 0) {
-                return res.status(404).json({
-                    statusCode: 1810,
-                    message: "No nonmember for this info",
-                });
-            }
-
-            const nonmemberId = nonMember[0].nonmember_id;
-            const memberJoinIdQuery = `(SELECT memberjoin_id FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseId})`;
-
-            // nonmembertime 정보를 membertime으로 옮기기 전에 중복 확인
-            const checkDuplicateQuery = (columns) => `
-                SELECT 1 FROM membertime 
-                WHERE memberjoin_id = ${memberJoinIdQuery} 
-                AND ${columns
-                    .map((column) => `${column} IS NOT NULL`)
-                    .join(" AND ")}
-            `;
-
-            const insertMemberTimeQuery = (columns, values) => `
-                INSERT INTO membertime (${columns.join(", ")})
-                SELECT ${[memberJoinIdQuery, ...values].join(", ")}
-                FROM nonmembertime 
-                WHERE nonmember_id = ${nonmemberId}
-                AND NOT EXISTS (${checkDuplicateQuery(columns)});
-            `;
-
-            if (weekvsdate === "W" && ampmvstime === "F") {
-                await db
-                    .promise()
-                    .query(
-                        insertMemberTimeQuery(
-                            ["memberjoin_id", "week_available"],
-                            ["week_available"]
-                        )
-                    );
-            } else if (weekvsdate === "D" && ampmvstime === "F") {
-                await db
-                    .promise()
-                    .query(
-                        insertMemberTimeQuery(
-                            ["memberjoin_id", "date_available"],
-                            ["date_available"]
-                        )
-                    );
-            } else if (weekvsdate === "W" && ampmvstime === "T") {
-                await db
-                    .promise()
-                    .query(
-                        insertMemberTimeQuery(
-                            ["memberjoin_id", "week_available", "time_id"],
-                            ["week_available", "time_id"]
-                        )
-                    );
-            } else if (weekvsdate === "D" && ampmvstime === "T") {
-                await db
-                    .promise()
-                    .query(
-                        insertMemberTimeQuery(
-                            ["memberjoin_id", "date_available", "time_id"],
-                            ["date_available", "time_id"]
-                        )
-                    );
-            }
-
-            // 옮긴 후, nonmembertime 및 nonmember 정보 삭제
-            await db
-                .promise()
-                .query(
-                    `DELETE FROM nonmembertime WHERE nonmember_id = ${nonmemberId}`
-                );
-            await db
-                .promise()
-                .query(
-                    `DELETE FROM nonmember WHERE nonmember_id = ${nonmemberId}`
-                );
-
-            res.status(200).send({
-                deletednonmemberid: nonmemberId,
-                message: "successfully link nonmember info to member",
-            });
-        } catch (err) {
-            console.log(err);
-            res.status(500).send({
-                statusCode: 1234,
-                message: "Error linking non-member information.",
+        if (promiseSettings.length === 0) {
+            return res.status(404).json({
+                statusCode: 1809,
+                message: "promise not found.",
             });
         }
+
+        const { weekvsdate, ampmvstime } = promiseSettings[0];
+
+        // 비회원 정보 가져오기
+        const [nonMember] = await db
+            .promise()
+            .query(
+                `SELECT nonmember_id FROM nonmember WHERE nonmember_name = ? AND nonmember_pwd = ? AND promise_id = ?`,
+                [nickname, password, promiseId]
+            );
+
+        if (nonMember.length === 0) {
+            return res.status(404).json({
+                statusCode: 1810,
+                message: "No nonmember for this info",
+            });
+        }
+
+        const nonmemberId = nonMember[0].nonmember_id;
+
+        // memberjoin_id 확인 및 없으면 생성
+        let [memberJoin] = await db
+            .promise()
+            .query(
+                `SELECT memberjoin_id FROM memberjoin WHERE member_id = ? AND promise_id = ?`,
+                [memberId, promiseId]
+            );
+
+        let memberJoinId;
+
+        if (memberJoin.length === 0) {
+            // memberjoin_id가 없으면 새로 생성
+            const [result] = await db
+                .promise()
+                .query(
+                    `INSERT INTO memberjoin (member_id, promise_id) VALUES (?, ?)`,
+                    [memberId, promiseId]
+                );
+
+            memberJoinId = result.insertId; // 새로 생성된 memberjoin_id 가져오기
+        } else {
+            memberJoinId = memberJoin[0].memberjoin_id;
+        }
+
+        // 데이터 삽입 및 중복 확인 쿼리
+        const insertMemberTimeQuery = async (columns, values) => {
+            const [result] = await db.promise().query(
+                `
+                INSERT INTO membertime (${columns.join(", ")})
+                SELECT ?, ${values.map(() => "?").join(", ")}
+                FROM nonmembertime 
+                WHERE nonmember_id = ? 
+                AND NOT EXISTS (
+                    SELECT 1 FROM membertime 
+                    WHERE memberjoin_id = ? 
+                    AND ${columns
+                        .map((column) => `${column} IS NOT NULL`)
+                        .join(" AND ")}
+                )
+            `,
+                [memberJoinId, ...values, nonmemberId, memberJoinId]
+            );
+
+            return result;
+        };
+
+        // 조건에 따라 데이터 옮기기
+        if (weekvsdate === "W" && ampmvstime === "F") {
+            await insertMemberTimeQuery(
+                ["memberjoin_id", "week_available"],
+                ["week_available"]
+            );
+        } else if (weekvsdate === "D" && ampmvstime === "F") {
+            await insertMemberTimeQuery(
+                ["memberjoin_id", "date_available"],
+                ["date_available"]
+            );
+        } else if (weekvsdate === "W" && ampmvstime === "T") {
+            await insertMemberTimeQuery(
+                ["memberjoin_id", "week_available", "time_id"],
+                ["week_available", "time_id"]
+            );
+        } else if (weekvsdate === "D" && ampmvstime === "T") {
+            await insertMemberTimeQuery(
+                ["memberjoin_id", "date_available", "time_id"],
+                ["date_available", "time_id"]
+            );
+        }
+
+        // 비회원 데이터 삭제
+        await db
+            .promise()
+            .query(`DELETE FROM nonmembertime WHERE nonmember_id = ?`, [
+                nonmemberId,
+            ]);
+        await db
+            .promise()
+            .query(`DELETE FROM nonmember WHERE nonmember_id = ?`, [
+                nonmemberId,
+            ]);
+
+        res.status(200).json({
+            deletednonmemberid: nonmemberId,
+            message: "Successfully linked nonmember info to member.",
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            statusCode: 1234,
+            message: "Error linking non-member information.",
+        });
     }
 });
 
