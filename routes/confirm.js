@@ -585,7 +585,7 @@ router.get("/confirminfo/:promiseid", authMember, async (req, res) => {
             [promiseInfo] = await db.promise().query(
                 `
                 SELECT 
-                    nonmember.nonmember_name AS member_promise_name,
+                    promise.promise_name as member_promise_name,
                     promise.weekvsdate,
                     promise.ampmvstime
                 FROM nonmember
