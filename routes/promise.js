@@ -1330,6 +1330,19 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
         `);
         const totalParticipants =
             memberCount[0].count + nonMemberCount[0].count;
+        
+        let promiseName;
+        if (req.isMember === true) {
+            const [promiseNameResult] = await db.promise().query(
+                `
+                SELECT member_promise_name FROM memberjoin WHERE member_id = ? AND promise_id = ?
+            `,
+                [req.memberId, promiseId]
+            );
+            promiseName = promiseNameResult[0]?.member_promise_name;
+        } else if (req.isMember === false) {
+            promiseName = promise_name;
+        }
 
         if (weekvsdate === "W" && ampmvstime === "F") {
             let countByWeekday = {
@@ -1412,7 +1425,7 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
             }
             // 최종 응답 객체 생성
             const responseObject = {
-                promise_name: promise_name,
+                promise_name: promiseName,
                 promise_code: promise_code,
                 weekvsdate: weekvsdate,
                 ampmvstime: ampmvstime,
@@ -1508,7 +1521,7 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
             }
             // 최종 응답 객체 생성
             const responseObject = {
-                promise_name: promise_name,
+                promise_name: promiseName,
                 promise_code: promise_code,
                 weekvsdate: weekvsdate,
                 ampmvstime: ampmvstime,
@@ -1641,7 +1654,7 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
             }
             // 최종 응답 객체 생성
             const responseObject = {
-                promise_name: promise_name,
+                promise_name: promiseName,
                 promise_code: promise_code,
                 weekvsdate: weekvsdate,
                 ampmvstime: ampmvstime,
@@ -1792,7 +1805,7 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
 
             // 최종 응답 객체 생성
             const responseObject = {
-                promise_name: promise_name,
+                promise_name: promiseName,
                 promise_code: promise_code,
                 weekvsdate: weekvsdate,
                 ampmvstime: ampmvstime,
