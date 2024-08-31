@@ -1179,7 +1179,11 @@ router.post("/link", authMember, async (req, res) => {
                 );
                 memberJoinId = result.insertId; // 새로 추가된 memberjoin_id
             } else {
-                memberJoinId = memberJoin[0].memberjoin_id;
+                // memberJoinId = memberJoin[0].memberjoin_id;
+                return res.status(400).json({
+                    statusCode: 1812,
+                    message: "Already participated in this promise",
+                });
             }
 
             // nonmembertime 데이터 가져오기
