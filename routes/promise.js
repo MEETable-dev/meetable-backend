@@ -1344,9 +1344,9 @@ router.get("/baseinfo/:promiseid", authMember, async (req, res) => {
                 [req.memberId, promiseId]
             );
             promiseName =
-                promiseNameResult[0] === 0
+                promiseNameResult.length === 0
                     ? promise_name
-                    : promiseNameResult[0].member_promise_name;
+                    : promiseNameResult[0]?.member_promise_name;
         } else if (req.isMember === false) {
             promiseName = promise_name;
         }
