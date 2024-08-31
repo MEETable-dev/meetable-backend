@@ -2121,6 +2121,7 @@ router.post("/verify", authMember, async (req, res) => {
             message: "Access denied. Only members can use this api",
         });
     }
+    const memberId = req.memberId;
     const linkOrCode = req.body.linkOrCode;
     console.log(linkOrCode);
     try {
