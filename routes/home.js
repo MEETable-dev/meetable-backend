@@ -502,6 +502,9 @@ router.delete("/backoutpromise", authMember, async (req, res) => {
                 await db.promise().query(`
                     DELETE FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promiseid};
                 `);
+                await db.promise().query(`
+                   DELETE FROM folder_promise WHERE folder_id = (SELECT folder_id FROM folder WHERE member_id = ${memberId} AND folder_name = 'meetable') AND promise_id = ${promiseid}; 
+                `);
             } else {
                 // 비회원인 경우, nonmember 테이블에서 제거
                 const nonmemberId = req.nonmemberId; // 비회원 ID

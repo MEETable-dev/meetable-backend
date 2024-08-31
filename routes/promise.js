@@ -2135,6 +2135,22 @@ router.post("/verify", authMember, async (req, res) => {
         `,
             [promiseId, promiseCode]
         );
+        // memberjoin에 참여 여부 확인 및 추가
+        const [memberJoin] = await db.promise().query(
+            `
+            SELECT memberjoin_id 
+            FROM memberjoin 
+            WHERE member_id = ? AND promise_id = ?
+        `,
+            [memberId, promiseId]
+        );
+        if (memberJoin.length > 0) {
+            return res.status(400).json({
+                statusCode: 1812,
+                message: "Already participated in this promise",
+            });
+        }
+
         if (isValid.length === 0) {
             return res.status(404).send({
                 statusCode: 4044,
