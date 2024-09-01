@@ -560,7 +560,9 @@ router.delete('/backoutall', authMember, async(req, res) => {
                 await db.promise().query(`
                     DELETE FROM memberjoin WHERE member_id = ${memberId} AND promise_id = ${promise.promise_id};
                 `);
-
+                await db.promise().query(`
+                    DELETE FROM folder_promise WHERE folder_id = (SELECT folder_id FROM folder WHERE member_id = ${memberId} AND folder_name = 'trash') AND promise_id = ${promise.promise_id}; 
+                 `);
                 // 약속의 전체 참여자 수 확인
                 const [participants] = await db.promise().query(`
                     SELECT 

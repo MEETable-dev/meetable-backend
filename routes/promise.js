@@ -1177,6 +1177,10 @@ router.post("/link", authMember, async (req, res) => {
                 `,
                     [memberId, promiseId, promise_name, canallconfirm, nickname]
                 );
+                await db.promise().query(`
+                    INSERT INTO folder_promise (folder_id, promise_id)
+                    SELECT folder_id, ${promiseId} FROM folder WHERE member_id = ${memberId} AND folder_name = 'meetable'
+                `);
                 memberJoinId = result.insertId; // 새로 추가된 memberjoin_id
             } else {
                 // memberJoinId = memberJoin[0].memberjoin_id;
