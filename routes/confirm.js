@@ -564,37 +564,42 @@ router.patch("/update", authMember, async (req, res) => {
 router.get("/confirminfo/:promiseid", authMember, async (req, res) => {
     const promiseid = parseInt(req.params.promiseid);
     try {
-        let promiseInfo;
+        const promiseInfo = await db.promise().query(
+            `
+            SELECT promise_name, weekvsdate, ampmvstime FROM promise WHERE promise_id = ?;
+            `,
+            [promiseid]
+        );
 
         // Check if the user is a member and fetch relevant promise info
-        if (req.isMember === true) {
-            [promiseInfo] = await db.promise().query(
-                `
-                SELECT 
-                    memberjoin.member_promise_name,
-                    promise.weekvsdate,
-                    promise.ampmvstime
-                FROM memberjoin
-                INNER JOIN promise ON memberjoin.promise_id = promise.promise_id
-                WHERE memberjoin.member_id = ? AND memberjoin.promise_id = ?;
-            `,
-                [req.memberId, promiseid]
-            );
-        } else if (req.isMember === false) {
-            // Fetch promise info for non-member
-            [promiseInfo] = await db.promise().query(
-                `
-                SELECT 
-                    promise.promise_name as member_promise_name,
-                    promise.weekvsdate,
-                    promise.ampmvstime
-                FROM nonmember
-                INNER JOIN promise ON nonmember.promise_id = promise.promise_id
-                WHERE nonmember.nonmember_id = ? AND nonmember.promise_id = ?;
-            `,
-                [req.nonmemberId, promiseid]
-            );
-        }
+        // if (req.isMember === true) {
+        //     [promiseInfo] = await db.promise().query(
+        //         `
+        //         SELECT
+        //             memberjoin.member_promise_name,
+        //             promise.weekvsdate,
+        //             promise.ampmvstime
+        //         FROM memberjoin
+        //         INNER JOIN promise ON memberjoin.promise_id = promise.promise_id
+        //         WHERE memberjoin.member_id = ? AND memberjoin.promise_id = ?;
+        //     `,
+        //         [req.memberId, promiseid]
+        //     );
+        // } else if (req.isMember === false) {
+        //     // Fetch promise info for non-member
+        //     [promiseInfo] = await db.promise().query(
+        //         `
+        //         SELECT
+        //             promise.promise_name as member_promise_name,
+        //             promise.weekvsdate,
+        //             promise.ampmvstime
+        //         FROM nonmember
+        //         INNER JOIN promise ON nonmember.promise_id = promise.promise_id
+        //         WHERE nonmember.nonmember_id = ? AND nonmember.promise_id = ?;
+        //     `,
+        //         [req.nonmemberId, promiseid]
+        //     );
+        // }
 
         if (promiseInfo.length === 0) {
             return res.status(404).json({
@@ -602,7 +607,7 @@ router.get("/confirminfo/:promiseid", authMember, async (req, res) => {
                 message: "Promise not found.",
             });
         }
-        const { member_promise_name, weekvsdate, ampmvstime } = promiseInfo[0];
+        const { promise_name, weekvsdate, ampmvstime } = promiseInfo[0][0];
         const [confirmedInfo] = await db.promise().query(
             `
             SELECT id, confirmed_place, confirmed_notice FROM confirmed WHERE promise_id = ?
@@ -614,7 +619,7 @@ router.get("/confirminfo/:promiseid", authMember, async (req, res) => {
                 statusCode: 4044,
                 message: "this promise has not been confirmed yet.",
             });
-        }
+        } 
 
         if (weekvsdate === "W" && ampmvstime === "F") {
             const [weekConfirmed] = await db.promise().query(
@@ -624,7 +629,7 @@ router.get("/confirminfo/:promiseid", authMember, async (req, res) => {
                 [confirmedInfo[0].id]
             );
             return res.status(200).json({
-                promiseName: member_promise_name,
+                promiseName: promise_name,
                 place: confirmedInfo[0].confirmed_place,
                 notice: confirmedInfo[0].confirmed_notice,
                 weekConfirmed: weekConfirmed.map((item) => item.week_confirmed),
@@ -637,7 +642,7 @@ router.get("/confirminfo/:promiseid", authMember, async (req, res) => {
                 [confirmedInfo[0].id]
             );
             return res.status(200).json({
-                promiseName: member_promise_name,
+                promiseName: promise_name,
                 place: confirmedInfo[0].confirmed_place,
                 notice: confirmedInfo[0].confirmed_notice,
                 dateConfirmed: dateConfirmed.map((item) =>
@@ -655,7 +660,7 @@ router.get("/confirminfo/:promiseid", authMember, async (req, res) => {
                 [confirmedInfo[0].id]
             );
             return res.status(200).json({
-                promiseName: member_promise_name,
+                promiseName: promise_name,
                 place: confirmedInfo[0].confirmed_place,
                 notice: confirmedInfo[0].confirmed_notice,
                 weekTimeConfirmed: weekTimeConfirmed.map(
@@ -673,7 +678,7 @@ router.get("/confirminfo/:promiseid", authMember, async (req, res) => {
                 [confirmedInfo[0].id]
             );
             return res.status(200).json({
-                promiseName: member_promise_name,
+                promiseName: promise_name,
                 place: confirmedInfo[0].confirmed_place,
                 notice: confirmedInfo[0].confirmed_notice,
                 dateTimeConfirmed: dateTimeConfirmed.map(
